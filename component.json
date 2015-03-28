@@ -1,0 +1,20 @@
+{
+  "name": "mdast-yaml-config",
+  "version": "0.1.0",
+  "description": "Set mdast options with YAML during runtime",
+  "license": "MIT",
+  "keywords": [
+    "yaml",
+    "options",
+    "config",
+    "settings",
+    "mdast"
+  ],
+  "dependencies": {
+    "wooorm/mdast-yaml": "^0.2.0"
+  },
+  "repository": "wooorm/mdast-yaml-config",
+  "scripts": [
+    "mdast-yaml-config.js"
+  ]
+}

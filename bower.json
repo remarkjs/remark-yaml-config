@@ -1,0 +1,36 @@
+{
+  "name": "mdast-yaml-config",
+  "main": "mdast-yaml-config.js",
+  "description": "Set mdast options with YAML during runtime",
+  "license": "MIT",
+  "keywords": [
+    "yaml",
+    "options",
+    "config",
+    "settings",
+    "mdast"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wooorm/mdast-yaml-config.git"
+  },
+  "authors": [
+    "Titus Wormer <tituswormer@gmail.com>"
+  ],
+  "ignore": [
+    ".*",
+    "*.log",
+    "*.md",
+    "build/",
+    "components/",
+    "coverage/",
+    "node_modules/",
+    "test/",
+    "build.js",
+    "example.js",
+    "index.js",
+    "test.js",
+    "component.json",
+    "package.json"
+  ]
+}
