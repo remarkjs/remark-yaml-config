@@ -101,6 +101,6 @@ describe('mdast-yaml()', function () {
                 '-   Foo',
                 ''
             ].join('\n'));
-        }, /Error: 1:1: Invalid value `\?` for setting `options\.bullet`/);
+        }, /1:1-4:4: Invalid value `\?` for setting `options\.bullet`/);
     });
 });

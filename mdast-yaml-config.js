@@ -23,25 +23,12 @@ function factory(method) {
 
     return function (node, instance) {
         var config = node.yaml && node.yaml.mdast;
-        var position;
-        var err;
 
         if (config) {
             try {
                 instance.setOptions(config);
             } catch (exception) {
-                position = node.position.start;
-
-                err = new Error(
-                    position.line + ':' + position.column + ': ' +
-                    exception.message
-                );
-
-                err.reason = exception.message;
-                err.line = position.line;
-                err.column = position.column;
-
-                throw err;
+                instance.file.fail(exception.message, node);
             }
         }
 
