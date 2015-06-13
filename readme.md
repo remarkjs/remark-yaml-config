@@ -7,19 +7,19 @@ Configure **mdast** with YAML front-matter.
 [npm](https://docs.npmjs.com/cli/install)
 
 ```bash
-$ npm install mdast-yaml-config
+npm install mdast-yaml-config
 ```
 
 [Component.js](https://github.com/componentjs/component)
 
 ```bash
-$ component install wooorm/mdast-yaml-config
+component install wooorm/mdast-yaml-config
 ```
 
 [Bower](http://bower.io/#install-packages)
 
 ```bash
-$ bower install mdast-yaml-config
+bower install mdast-yaml-config
 ```
 
 [Duo](http://duojs.org/#getting-started)
@@ -90,9 +90,12 @@ mdast:
 
 ### [mdast](https://github.com/wooorm/mdast#api).[use](https://github.com/wooorm/mdast#mdastuseplugin-options)(yamlConfig, options)
 
-Passes the [configuration](https://github.com/wooorm/mdast/blob/master/doc/Options.md) found in YAML front-matter (under the `mdast` key) to **mdast**.
+Passes the [configuration](https://github.com/wooorm/mdast/blob/master/doc/Options.md)
+found in YAML front-matter (under the `mdast` key) to **mdast**.
 
-This is especially useful if you’re using **mdast**’s [CLI](https://github.com/wooorm/mdast#cli), which allows multiple documents to be processed in one go, but you’d like certain files to have different formatting.
+This is especially useful if you’re using **mdast**’s [CLI](https://github.com/wooorm/mdast#cli),
+which allows multiple documents to be processed in one go, but you’d like
+certain files to have different formatting.
 
 **Signatures**
 
