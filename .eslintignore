@@ -1,0 +1,6 @@
+build/
+components/
+coverage/
+build.js
+mdast-yaml-config.js
+mdast-yaml-config.min.js
