@@ -75,7 +75,7 @@ var doc = mdast.stringify(tree);
 ---
 mdast:
   commonmark: true
-  bullet: "*"
+  bullet: '*'
 ---
 
 1.  Commonmark list (this is a parse setting)

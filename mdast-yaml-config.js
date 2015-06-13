@@ -245,12 +245,12 @@ module.exports.addConstructor = deprecated('addConstructor');
 
 
 function isNothing(subject) {
-  return (undefined === subject) || (null === subject);
+  return (typeof subject === 'undefined') || (null === subject);
 }
 
 
 function isObject(subject) {
-  return ('object' === typeof subject) && (null !== subject);
+  return (typeof subject === 'object') && (null !== subject);
 }
 
 
@@ -259,9 +259,8 @@ function toArray(sequence) {
     return sequence;
   } else if (isNothing(sequence)) {
     return [];
-  } else {
-    return [ sequence ];
   }
+  return [ sequence ];
 }
 
 
@@ -307,16 +306,15 @@ module.exports.extend         = extend;
 },{}],6:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable no-use-before-define*/
 
 var common              = require('./common');
 var YAMLException       = require('./exception');
 var DEFAULT_FULL_SCHEMA = require('./schema/default_full');
 var DEFAULT_SAFE_SCHEMA = require('./schema/default_safe');
 
-
 var _toString       = Object.prototype.toString;
 var _hasOwnProperty = Object.prototype.hasOwnProperty;
-
 
 var CHAR_TAB                  = 0x09; /* Tab */
 var CHAR_LINE_FEED            = 0x0A; /* LF */
@@ -342,7 +340,6 @@ var CHAR_LEFT_CURLY_BRACKET   = 0x7B; /* { */
 var CHAR_VERTICAL_LINE        = 0x7C; /* | */
 var CHAR_RIGHT_CURLY_BRACKET  = 0x7D; /* } */
 
-
 var ESCAPE_SEQUENCES = {};
 
 ESCAPE_SEQUENCES[0x00]   = '\\0';
@@ -361,12 +358,10 @@ ESCAPE_SEQUENCES[0xA0]   = '\\_';
 ESCAPE_SEQUENCES[0x2028] = '\\L';
 ESCAPE_SEQUENCES[0x2029] = '\\P';
 
-
 var DEPRECATED_BOOLEANS_SYNTAX = [
   'y', 'Y', 'yes', 'Yes', 'YES', 'on', 'On', 'ON',
   'n', 'N', 'no', 'No', 'NO', 'off', 'Off', 'OFF'
 ];
-
 
 function compileStyleMap(schema, map) {
   var result, keys, index, length, tag, style, type;
@@ -398,7 +393,6 @@ function compileStyleMap(schema, map) {
   return result;
 }
 
-
 function encodeHex(character) {
   var string, handle, length;
 
@@ -420,13 +414,13 @@ function encodeHex(character) {
   return '\\' + handle + common.repeat('0', length - string.length) + string;
 }
 
-
 function State(options) {
   this.schema      = options['schema'] || DEFAULT_FULL_SCHEMA;
   this.indent      = Math.max(1, (options['indent'] || 2));
   this.skipInvalid = options['skipInvalid'] || false;
   this.flowLevel   = (common.isNothing(options['flowLevel']) ? -1 : options['flowLevel']);
   this.styleMap    = compileStyleMap(this.schema, options['styles'] || null);
+  this.sortKeys    = options['sortKeys'] || false;
 
   this.implicitTypes = this.schema.compiledImplicit;
   this.explicitTypes = this.schema.compiledExplicit;
@@ -438,6 +432,31 @@ function State(options) {
   this.usedDuplicates = null;
 }
 
+function indentString(string, spaces) {
+  var ind = common.repeat(' ', spaces),
+      position = 0,
+      next = -1,
+      result = '',
+      line,
+      length = string.length;
+
+  while (position < length) {
+    next = string.indexOf('\n', position);
+    if (next === -1) {
+      line = string.slice(position);
+      position = length;
+    } else {
+      line = string.slice(position, next + 1);
+      position = next + 1;
+    }
+    if (line.length && line !== '\n') {
+      result += ind;
+    }
+    result += line;
+  }
+
+  return result;
+}
 
 function generateNextLine(state, level) {
   return '\n' + common.repeat(' ', state.indent * level);
@@ -457,81 +476,339 @@ function testImplicitResolving(state, str) {
   return false;
 }
 
-function writeScalar(state, object) {
-  var isQuoted, checkpoint, position, length, character, first;
+function StringBuilder(source) {
+  this.source = source;
+  this.result = '';
+  this.checkpoint = 0;
+}
 
-  state.dump = '';
-  isQuoted = false;
-  checkpoint = 0;
-  first = object.charCodeAt(0) || 0;
+StringBuilder.prototype.takeUpTo = function (position) {
+  var er;
 
-  if (-1 !== DEPRECATED_BOOLEANS_SYNTAX.indexOf(object)) {
-    // Ensure compatibility with YAML 1.0/1.1 loaders.
-    isQuoted = true;
-  } else if (0 === object.length) {
-    // Quote empty string
-    isQuoted = true;
-  } else if (CHAR_SPACE    === first ||
-             CHAR_SPACE    === object.charCodeAt(object.length - 1)) {
-    isQuoted = true;
-  } else if (CHAR_MINUS    === first ||
-             CHAR_QUESTION === first) {
-    // Don't check second symbol for simplicity
-    isQuoted = true;
+  if (position < this.checkpoint) {
+    er = new Error('position should be > checkpoint');
+    er.position = position;
+    er.checkpoint = this.checkpoint;
+    throw er;
   }
 
-  for (position = 0, length = object.length; position < length; position += 1) {
-    character = object.charCodeAt(position);
+  this.result += this.source.slice(this.checkpoint, position);
+  this.checkpoint = position;
+  return this;
+};
 
-    if (!isQuoted) {
-      if (CHAR_TAB                  === character ||
-          CHAR_LINE_FEED            === character ||
-          CHAR_CARRIAGE_RETURN      === character ||
-          CHAR_COMMA                === character ||
-          CHAR_LEFT_SQUARE_BRACKET  === character ||
-          CHAR_RIGHT_SQUARE_BRACKET === character ||
-          CHAR_LEFT_CURLY_BRACKET   === character ||
-          CHAR_RIGHT_CURLY_BRACKET  === character ||
-          CHAR_SHARP                === character ||
-          CHAR_AMPERSAND            === character ||
-          CHAR_ASTERISK             === character ||
-          CHAR_EXCLAMATION          === character ||
-          CHAR_VERTICAL_LINE        === character ||
-          CHAR_GREATER_THAN         === character ||
-          CHAR_SINGLE_QUOTE         === character ||
-          CHAR_DOUBLE_QUOTE         === character ||
-          CHAR_PERCENT              === character ||
-          CHAR_COMMERCIAL_AT        === character ||
-          CHAR_COLON                === character ||
-          CHAR_GRAVE_ACCENT         === character) {
-        isQuoted = true;
+StringBuilder.prototype.escapeChar = function () {
+  var character, esc;
+
+  character = this.source.charCodeAt(this.checkpoint);
+  esc = ESCAPE_SEQUENCES[character] || encodeHex(character);
+  this.result += esc;
+  this.checkpoint += 1;
+
+  return this;
+};
+
+StringBuilder.prototype.finish = function () {
+  if (this.source.length > this.checkpoint) {
+    this.takeUpTo(this.source.length);
+  }
+};
+
+function writeScalar(state, object, level) {
+  var simple, first, spaceWrap, folded, literal, single, double,
+      sawLineFeed, linePosition, longestLine, indent, max, character,
+      position, escapeSeq, hexEsc, previous, lineLength, modifier,
+      trailingLineBreaks, result;
+
+  if (0 === object.length) {
+    state.dump = "''";
+    return;
+  }
+
+  if (-1 !== DEPRECATED_BOOLEANS_SYNTAX.indexOf(object)) {
+    state.dump = "'" + object + "'";
+    return;
+  }
+
+  simple = true;
+  first = object.length ? object.charCodeAt(0) : 0;
+  spaceWrap = (CHAR_SPACE === first ||
+               CHAR_SPACE === object.charCodeAt(object.length - 1));
+
+  // Simplified check for restricted first characters
+  // http://www.yaml.org/spec/1.2/spec.html#ns-plain-first%28c%29
+  if (CHAR_MINUS         === first ||
+      CHAR_QUESTION      === first ||
+      CHAR_COMMERCIAL_AT === first ||
+      CHAR_GRAVE_ACCENT  === first) {
+    simple = false;
+  }
+
+  // can only use > and | if not wrapped in spaces.
+  if (spaceWrap) {
+    simple = false;
+    folded = false;
+    literal = false;
+  } else {
+    folded = true;
+    literal = true;
+  }
+
+  single = true;
+  double = new StringBuilder(object);
+
+  sawLineFeed = false;
+  linePosition = 0;
+  longestLine = 0;
+
+  indent = state.indent * level;
+  max = 80;
+  if (indent < 40) {
+    max -= indent;
+  } else {
+    max = 40;
+  }
+
+  for (position = 0; position < object.length; position++) {
+    character = object.charCodeAt(position);
+    if (simple) {
+      // Characters that can never appear in the simple scalar
+      if (!simpleChar(character)) {
+        simple = false;
+      } else {
+        // Still simple.  If we make it all the way through like
+        // this, then we can just dump the string as-is.
+        continue;
       }
     }
 
-    if (ESCAPE_SEQUENCES[character] ||
-        !((0x00020 <= character && character <= 0x00007E) ||
-          (0x00085 === character)                         ||
-          (0x000A0 <= character && character <= 0x00D7FF) ||
-          (0x0E000 <= character && character <= 0x00FFFD) ||
-          (0x10000 <= character && character <= 0x10FFFF))) {
-      state.dump += object.slice(checkpoint, position);
-      state.dump += ESCAPE_SEQUENCES[character] || encodeHex(character);
-      checkpoint = position + 1;
-      isQuoted = true;
+    if (single && character === CHAR_SINGLE_QUOTE) {
+      single = false;
+    }
+
+    escapeSeq = ESCAPE_SEQUENCES[character];
+    hexEsc = needsHexEscape(character);
+
+    if (!escapeSeq && !hexEsc) {
+      continue;
+    }
+
+    if (character !== CHAR_LINE_FEED &&
+        character !== CHAR_DOUBLE_QUOTE &&
+        character !== CHAR_SINGLE_QUOTE) {
+      folded = false;
+      literal = false;
+    } else if (character === CHAR_LINE_FEED) {
+      sawLineFeed = true;
+      single = false;
+      if (position > 0) {
+        previous = object.charCodeAt(position - 1);
+        if (previous === CHAR_SPACE) {
+          literal = false;
+          folded = false;
+        }
+      }
+      if (folded) {
+        lineLength = position - linePosition;
+        linePosition = position;
+        if (lineLength > longestLine) {
+          longestLine = lineLength;
+        }
+      }
+    }
+
+    if (character !== CHAR_DOUBLE_QUOTE) {
+      single = false;
+    }
+
+    double.takeUpTo(position);
+    double.escapeChar();
+  }
+
+  if (simple && testImplicitResolving(state, object)) {
+    simple = false;
+  }
+
+  modifier = '';
+  if (folded || literal) {
+    trailingLineBreaks = 0;
+    if (object.charCodeAt(object.length - 1) === CHAR_LINE_FEED) {
+      trailingLineBreaks += 1;
+      if (object.charCodeAt(object.length - 2) === CHAR_LINE_FEED) {
+        trailingLineBreaks += 1;
+      }
+    }
+
+    if (trailingLineBreaks === 0) {
+      modifier = '-';
+    } else if (trailingLineBreaks === 2) {
+      modifier = '+';
     }
   }
 
-  if (checkpoint < position) {
-    state.dump += object.slice(checkpoint, position);
+  if (literal && longestLine < max) {
+    folded = false;
   }
 
-  if (!isQuoted && testImplicitResolving(state, state.dump)) {
-    isQuoted = true;
+  // If it's literally one line, then don't bother with the literal.
+  // We may still want to do a fold, though, if it's a super long line.
+  if (!sawLineFeed) {
+    literal = false;
   }
 
-  if (isQuoted) {
-    state.dump = '"' + state.dump + '"';
+  if (simple) {
+    state.dump = object;
+  } else if (single) {
+    state.dump = '\'' + object + '\'';
+  } else if (folded) {
+    result = fold(object, max);
+    state.dump = '>' + modifier + '\n' + indentString(result, indent);
+  } else if (literal) {
+    if (!modifier) {
+      object = object.replace(/\n$/, '');
+    }
+    state.dump = '|' + modifier + '\n' + indentString(object, indent);
+  } else if (double) {
+    double.finish();
+    state.dump = '"' + double.result + '"';
+  } else {
+    throw new Error('Failed to dump scalar value');
   }
+
+  return;
+}
+
+// The `trailing` var is a regexp match of any trailing `\n` characters.
+//
+// There are three cases we care about:
+//
+// 1. One trailing `\n` on the string.  Just use `|` or `>`.
+//    This is the assumed default. (trailing = null)
+// 2. No trailing `\n` on the string.  Use `|-` or `>-` to "chomp" the end.
+// 3. More than one trailing `\n` on the string.  Use `|+` or `>+`.
+//
+// In the case of `>+`, these line breaks are *not* doubled (like the line
+// breaks within the string), so it's important to only end with the exact
+// same number as we started.
+function fold(object, max) {
+  var result = '',
+      position = 0,
+      length = object.length,
+      trailing = /\n+$/.exec(object),
+      newLine;
+
+  if (trailing) {
+    length = trailing.index + 1;
+  }
+
+  while (position < length) {
+    newLine = object.indexOf('\n', position);
+    if (newLine > length || newLine === -1) {
+      if (result) {
+        result += '\n\n';
+      }
+      result += foldLine(object.slice(position, length), max);
+      position = length;
+    } else {
+      if (result) {
+        result += '\n\n';
+      }
+      result += foldLine(object.slice(position, newLine), max);
+      position = newLine + 1;
+    }
+  }
+  if (trailing && trailing[0] !== '\n') {
+    result += trailing[0];
+  }
+
+  return result;
+}
+
+function foldLine(line, max) {
+  if (line === '') {
+    return line;
+  }
+
+  var foldRe = /[^\s] [^\s]/g,
+      result = '',
+      prevMatch = 0,
+      foldStart = 0,
+      match = foldRe.exec(line),
+      index,
+      foldEnd,
+      folded;
+
+  while (match) {
+    index = match.index;
+
+    // when we cross the max len, if the previous match would've
+    // been ok, use that one, and carry on.  If there was no previous
+    // match on this fold section, then just have a long line.
+    if (index - foldStart > max) {
+      if (prevMatch !== foldStart) {
+        foldEnd = prevMatch;
+      } else {
+        foldEnd = index;
+      }
+
+      if (result) {
+        result += '\n';
+      }
+      folded = line.slice(foldStart, foldEnd);
+      result += folded;
+      foldStart = foldEnd + 1;
+    }
+    prevMatch = index + 1;
+    match = foldRe.exec(line);
+  }
+
+  if (result) {
+    result += '\n';
+  }
+
+  // if we end up with one last word at the end, then the last bit might
+  // be slightly bigger than we wanted, because we exited out of the loop.
+  if (foldStart !== prevMatch && line.length - foldStart > max) {
+    result += line.slice(foldStart, prevMatch) + '\n' +
+              line.slice(prevMatch + 1);
+  } else {
+    result += line.slice(foldStart);
+  }
+
+  return result;
+}
+
+// Returns true if character can be found in a simple scalar
+function simpleChar(character) {
+  return CHAR_TAB                  !== character &&
+         CHAR_LINE_FEED            !== character &&
+         CHAR_CARRIAGE_RETURN      !== character &&
+         CHAR_COMMA                !== character &&
+         CHAR_LEFT_SQUARE_BRACKET  !== character &&
+         CHAR_RIGHT_SQUARE_BRACKET !== character &&
+         CHAR_LEFT_CURLY_BRACKET   !== character &&
+         CHAR_RIGHT_CURLY_BRACKET  !== character &&
+         CHAR_SHARP                !== character &&
+         CHAR_AMPERSAND            !== character &&
+         CHAR_ASTERISK             !== character &&
+         CHAR_EXCLAMATION          !== character &&
+         CHAR_VERTICAL_LINE        !== character &&
+         CHAR_GREATER_THAN         !== character &&
+         CHAR_SINGLE_QUOTE         !== character &&
+         CHAR_DOUBLE_QUOTE         !== character &&
+         CHAR_PERCENT              !== character &&
+         CHAR_COLON                !== character &&
+         !ESCAPE_SEQUENCES[character]            &&
+         !needsHexEscape(character);
+}
+
+// Returns true if the character code needs to be escaped.
+function needsHexEscape(character) {
+  return !((0x00020 <= character && character <= 0x00007E) ||
+           (0x00085 === character)                         ||
+           (0x000A0 <= character && character <= 0x00D7FF) ||
+           (0x0E000 <= character && character <= 0x00FFFD) ||
+           (0x10000 <= character && character <= 0x10FFFF));
 }
 
 function writeFlowSequence(state, level, object) {
@@ -628,6 +905,18 @@ function writeBlockMapping(state, level, object, compact) {
       objectValue,
       explicitPair,
       pairBuffer;
+
+  // Allow sorting keys so that the output file is deterministic
+  if (state.sortKeys === true) {
+    // Default sorting
+    objectKeyList.sort();
+  } else if (typeof state.sortKeys === 'function') {
+    // Custom sort function
+    objectKeyList.sort(state.sortKeys);
+  } else if (state.sortKeys) {
+    // Something is wrong
+    throw new YAMLException('sortKeys must be a boolean or a function');
+  }
 
   for (index = 0, length = objectKeyList.length; index < length; index += 1) {
     pairBuffer = '';
@@ -777,11 +1066,12 @@ function writeNode(state, level, object, block, compact) {
       }
     } else if ('[object String]' === type) {
       if ('?' !== state.tag) {
-        writeScalar(state, state.dump);
+        writeScalar(state, state.dump, level);
       }
-    } else if (state.skipInvalid) {
-      return false;
     } else {
+      if (state.skipInvalid) {
+        return false;
+      }
       throw new YAMLException('unacceptable kind of an object to dump ' + type);
     }
 
@@ -821,8 +1111,8 @@ function inspectNode(object, objects, duplicatesIndexes) {
       }
     } else {
       objects.push(object);
-    
-      if(Array.isArray(object)) {
+
+      if (Array.isArray(object)) {
         for (index = 0, length = object.length; index < length; index += 1) {
           inspectNode(object[index], objects, duplicatesIndexes);
         }
@@ -846,16 +1136,13 @@ function dump(input, options) {
 
   if (writeNode(state, 0, input, true, true)) {
     return state.dump + '\n';
-  } else {
-    return '';
   }
+  return '';
 }
-
 
 function safeDump(input, options) {
   return dump(input, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options));
 }
-
 
 module.exports.dump     = dump;
 module.exports.safeDump = safeDump;
@@ -890,6 +1177,7 @@ module.exports = YAMLException;
 },{}],8:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable max-len,no-use-before-define*/
 
 var common              = require('./common');
 var YAMLException       = require('./exception');
@@ -912,7 +1200,7 @@ var CHOMPING_STRIP = 2;
 var CHOMPING_KEEP  = 3;
 
 
-var PATTERN_NON_PRINTABLE         = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uD800-\uDFFF\uFFFE\uFFFF]/;
+var PATTERN_NON_PRINTABLE         = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/;
 var PATTERN_NON_ASCII_LINE_BREAKS = /[\x85\u2028\u2029]/;
 var PATTERN_FLOW_INDICATORS       = /[,\[\]\{\}]/;
 var PATTERN_TAG_HANDLE            = /^(?:!|!!|![a-z\-]+!)$/i;
@@ -949,7 +1237,9 @@ function fromHexCode(c) {
     return c - 0x30;
   }
 
+  /*eslint-disable no-bitwise*/
   lc = c | 0x20;
+
   if ((0x61/* a */ <= lc) && (lc <= 0x66/* f */)) {
     return lc - 0x61 + 10;
   }
@@ -973,7 +1263,7 @@ function fromDecimalCode(c) {
 }
 
 function simpleEscapeSequence(c) {
- return (c === 0x30/* 0 */) ? '\x00' :
+  return (c === 0x30/* 0 */) ? '\x00' :
         (c === 0x61/* a */) ? '\x07' :
         (c === 0x62/* b */) ? '\x08' :
         (c === 0x74/* t */) ? '\x09' :
@@ -996,12 +1286,11 @@ function simpleEscapeSequence(c) {
 function charFromCodepoint(c) {
   if (c <= 0xFFFF) {
     return String.fromCharCode(c);
-  } else {
-    // Encode UTF-16 surrogate pair
-    // https://en.wikipedia.org/wiki/UTF-16#Code_points_U.2B010000_to_U.2B10FFFF
-    return String.fromCharCode(((c - 0x010000) >> 10) + 0xD800,
-                               ((c - 0x010000) & 0x03FF) + 0xDC00);
   }
+  // Encode UTF-16 surrogate pair
+  // https://en.wikipedia.org/wiki/UTF-16#Code_points_U.2B010000_to_U.2B10FFFF
+  return String.fromCharCode(((c - 0x010000) >> 10) + 0xD800,
+                             ((c - 0x010000) & 0x03FF) + 0xDC00);
 }
 
 var simpleEscapeCheck = new Array(256); // integer, for fast access
@@ -1067,7 +1356,7 @@ function throwWarning(state, message) {
 
 var directiveHandlers = {
 
-  'YAML': function handleYamlDirective(state, name, args) {
+  YAML: function handleYamlDirective(state, name, args) {
 
       var match, major, minor;
 
@@ -1100,7 +1389,7 @@ var directiveHandlers = {
       }
     },
 
-  'TAG': function handleTagDirective(state, name, args) {
+  TAG: function handleTagDirective(state, name, args) {
 
       var handle, prefix;
 
@@ -1260,7 +1549,7 @@ function testDocumentSeparator(state) {
   // in parent on each call, for efficiency. No needs to test here again.
   if ((0x2D/* - */ === ch || 0x2E/* . */ === ch) &&
       state.input.charCodeAt(_position + 1) === ch &&
-      state.input.charCodeAt(_position+ 2) === ch) {
+      state.input.charCodeAt(_position + 2) === ch) {
 
     _position += 3;
 
@@ -1330,7 +1619,7 @@ function readPlainScalar(state, nodeIndent, withinFlowCollection) {
 
   while (0 !== ch) {
     if (0x3A/* : */ === ch) {
-      following = state.input.charCodeAt(state.position+1);
+      following = state.input.charCodeAt(state.position + 1);
 
       if (is_WS_OR_EOL(following) ||
           withinFlowCollection && is_FLOW_INDICATOR(following)) {
@@ -1385,11 +1674,11 @@ function readPlainScalar(state, nodeIndent, withinFlowCollection) {
 
   if (state.result) {
     return true;
-  } else {
-    state.kind = _kind;
-    state.result = _result;
-    return false;
   }
+
+  state.kind = _kind;
+  state.result = _result;
+  return false;
 }
 
 function readSingleQuotedScalar(state, nodeIndent) {
@@ -1468,7 +1757,7 @@ function readDoubleQuotedScalar(state, nodeIndent) {
       if (is_EOL(ch)) {
         skipSeparationSpace(state, false, nodeIndent);
 
-        //TODO: rework to inline fn with no type cast?
+        // TODO: rework to inline fn with no type cast?
       } else if (ch < 256 && simpleEscapeCheck[ch]) {
         state.result += simpleEscapeMap[ch];
         state.position++;
@@ -1534,11 +1823,11 @@ function readFlowCollection(state, nodeIndent) {
   ch = state.input.charCodeAt(state.position);
 
   if (ch === 0x5B/* [ */) {
-    terminator = 0x5D/* ] */;
+    terminator = 0x5D;/* ] */
     isMapping = false;
     _result = [];
   } else if (ch === 0x7B/* { */) {
-    terminator = 0x7D/* } */;
+    terminator = 0x7D;/* } */
     isMapping = true;
     _result = {};
   } else {
@@ -1740,24 +2029,20 @@ function readBlockScalar(state, nodeIndent) {
       }
 
     // Literal style: just add exact number of line breaks between content lines.
-    } else {
-
+    } else if (detectedIndent) {
       // If current line isn't the first one - count line break from the last content line.
-      if (detectedIndent) {
-        state.result += common.repeat('\n', emptyLines + 1);
-
+      state.result += common.repeat('\n', emptyLines + 1);
+    } else {
       // In case of the first content line - count only empty lines.
-      } else {
-        state.result += common.repeat('\n', emptyLines);
-      }
     }
 
     detectedIndent = true;
     emptyLines = 0;
     captureStart = state.position;
 
-    while (!is_EOL(ch) && (0 !== ch))
-    { ch = state.input.charCodeAt(++state.position); }
+    while (!is_EOL(ch) && (0 !== ch)) {
+      ch = state.input.charCodeAt(++state.position);
+    }
 
     captureSegment(state, captureStart, state.position, false);
   }
@@ -1823,9 +2108,8 @@ function readBlockSequence(state, nodeIndent) {
     state.kind = 'sequence';
     state.result = _result;
     return true;
-  } else {
-    return false;
   }
+  return false;
 }
 
 function readBlockMapping(state, nodeIndent, flowIndent) {
@@ -2405,10 +2689,18 @@ function loadDocuments(input, options) {
   input = String(input);
   options = options || {};
 
-  if (0 !== input.length &&
-      0x0A/* LF */ !== input.charCodeAt(input.length - 1) &&
-      0x0D/* CR */ !== input.charCodeAt(input.length - 1)) {
-    input += '\n';
+  if (input.length !== 0) {
+
+    // Add tailing `\n` if not exists
+    if (0x0A/* LF */ !== input.charCodeAt(input.length - 1) &&
+        0x0D/* CR */ !== input.charCodeAt(input.length - 1)) {
+      input += '\n';
+    }
+
+    // Strip BOM
+    if (input.charCodeAt(0) === 0xFEFF) {
+      input = input.slice(1);
+    }
   }
 
   var state = new State(input, options);
@@ -2446,12 +2738,12 @@ function load(input, options) {
   var documents = loadDocuments(input, options), index, length;
 
   if (0 === documents.length) {
+    /*eslint-disable no-undefined*/
     return undefined;
   } else if (1 === documents.length) {
     return documents[0];
-  } else {
-    throw new YAMLException('expected a single document in the stream, but found more');
   }
+  throw new YAMLException('expected a single document in the stream, but found more');
 }
 
 
@@ -2553,6 +2845,7 @@ module.exports = Mark;
 },{"./common":5}],10:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable max-len*/
 
 var common        = require('./common');
 var YAMLException = require('./exception');
@@ -2844,6 +3137,7 @@ module.exports = Type;
 },{"./exception":7}],17:[function(require,module,exports){
 'use strict';
 
+/*eslint-disable no-bitwise*/
 
 // A trick for browserified version.
 // Since we make browserifier to ignore `buffer` module, NodeBuffer will be undefined
@@ -2863,7 +3157,7 @@ function resolveYamlBinary(data) {
   var code, idx, bitlen = 0, len = 0, max = data.length, map = BASE64_MAP;
 
   // Convert one by one.
-  for (idx = 0; idx < max; idx ++) {
+  for (idx = 0; idx < max; idx++) {
     code = map.indexOf(data.charAt(idx));
 
     // Skip CR/LF
@@ -2901,7 +3195,7 @@ function constructYamlBinary(data) {
 
   // Dump tail
 
-  tailbits = (max % 4)*6;
+  tailbits = (max % 4) * 6;
 
   if (tailbits === 0) {
     result.push((bits >> 16) & 0xFF);
@@ -3073,9 +3367,8 @@ function constructYamlFloat(data) {
 
     return sign * value;
 
-  } else {
-    return sign * parseFloat(value, 10);
   }
+  return sign * parseFloat(value, 10);
 }
 
 function representYamlFloat(object, style) {
@@ -3108,9 +3401,8 @@ function representYamlFloat(object, style) {
     }
   } else if (common.isNegativeZero(object)) {
     return '-0.0';
-  } else {
-    return object.toString(10);
   }
+  return object.toString(10);
 }
 
 function isFloat(object) {
@@ -3168,7 +3460,7 @@ function resolveYamlInteger(data) {
 
   if (ch === '0') {
     // 0
-    if (index+1 === max) { return true; }
+    if (index + 1 === max) { return true; }
     ch = data[++index];
 
     // base 2, base 8, base 16
@@ -3380,7 +3672,8 @@ function constructJavascriptFunction(data) {
 
   // Esprima's ranges include the first '{' and the last '}' characters on
   // function expressions. So cut them out.
-  return new Function(params, source.slice(body[0]+1, body[1]-1));
+  /*eslint-disable no-new-func*/
+  return new Function(params, source.slice(body[0] + 1, body[1] - 1));
 }
 
 function representJavascriptFunction(object /*, style*/) {
@@ -3495,6 +3788,7 @@ function resolveJavascriptUndefined() {
 }
 
 function constructJavascriptUndefined() {
+  /*eslint-disable no-undefined*/
   return undefined;
 }
 
@@ -3908,18 +4202,29 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         FnExprTokens,
         Syntax,
         PlaceHolders,
-        PropertyKind,
         Messages,
         Regex,
         source,
         strict,
+        sourceType,
         index,
         lineNumber,
         lineStart,
+        hasLineTerminator,
+        lastIndex,
+        lastLineNumber,
+        lastLineStart,
+        startIndex,
+        startLineNumber,
+        startLineStart,
+        scanning,
         length,
         lookahead,
         state,
-        extra;
+        extra,
+        isBindingElement,
+        isAssignmentTarget,
+        firstCoverInitializedNameError;
 
     Token = {
         BooleanLiteral: 1,
@@ -3930,7 +4235,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         NumericLiteral: 6,
         Punctuator: 7,
         StringLiteral: 8,
-        RegularExpression: 9
+        RegularExpression: 9,
+        Template: 10
     };
 
     TokenName = {};
@@ -3943,6 +4249,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     TokenName[Token.Punctuator] = 'Punctuator';
     TokenName[Token.StringLiteral] = 'String';
     TokenName[Token.RegularExpression] = 'RegularExpression';
+    TokenName[Token.Template] = 'Template';
 
     // A function following one of those tokens is an expression.
     FnExprTokens = ['(', '{', '[', 'in', 'typeof', 'instanceof', 'new',
@@ -3957,18 +4264,27 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
     Syntax = {
         AssignmentExpression: 'AssignmentExpression',
+        AssignmentPattern: 'AssignmentPattern',
         ArrayExpression: 'ArrayExpression',
+        ArrayPattern: 'ArrayPattern',
         ArrowFunctionExpression: 'ArrowFunctionExpression',
         BlockStatement: 'BlockStatement',
         BinaryExpression: 'BinaryExpression',
         BreakStatement: 'BreakStatement',
         CallExpression: 'CallExpression',
         CatchClause: 'CatchClause',
+        ClassBody: 'ClassBody',
+        ClassDeclaration: 'ClassDeclaration',
+        ClassExpression: 'ClassExpression',
         ConditionalExpression: 'ConditionalExpression',
         ContinueStatement: 'ContinueStatement',
         DoWhileStatement: 'DoWhileStatement',
         DebuggerStatement: 'DebuggerStatement',
         EmptyStatement: 'EmptyStatement',
+        ExportAllDeclaration: 'ExportAllDeclaration',
+        ExportDefaultDeclaration: 'ExportDefaultDeclaration',
+        ExportNamedDeclaration: 'ExportNamedDeclaration',
+        ExportSpecifier: 'ExportSpecifier',
         ExpressionStatement: 'ExpressionStatement',
         ForStatement: 'ForStatement',
         ForInStatement: 'ForInStatement',
@@ -3976,18 +4292,30 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         FunctionExpression: 'FunctionExpression',
         Identifier: 'Identifier',
         IfStatement: 'IfStatement',
+        ImportDeclaration: 'ImportDeclaration',
+        ImportDefaultSpecifier: 'ImportDefaultSpecifier',
+        ImportNamespaceSpecifier: 'ImportNamespaceSpecifier',
+        ImportSpecifier: 'ImportSpecifier',
         Literal: 'Literal',
         LabeledStatement: 'LabeledStatement',
         LogicalExpression: 'LogicalExpression',
         MemberExpression: 'MemberExpression',
+        MethodDefinition: 'MethodDefinition',
         NewExpression: 'NewExpression',
         ObjectExpression: 'ObjectExpression',
+        ObjectPattern: 'ObjectPattern',
         Program: 'Program',
         Property: 'Property',
+        RestElement: 'RestElement',
         ReturnStatement: 'ReturnStatement',
         SequenceExpression: 'SequenceExpression',
-        SwitchStatement: 'SwitchStatement',
+        SpreadElement: 'SpreadElement',
+        Super: 'Super',
         SwitchCase: 'SwitchCase',
+        SwitchStatement: 'SwitchStatement',
+        TaggedTemplateExpression: 'TaggedTemplateExpression',
+        TemplateElement: 'TemplateElement',
+        TemplateLiteral: 'TemplateLiteral',
         ThisExpression: 'ThisExpression',
         ThrowStatement: 'ThrowStatement',
         TryStatement: 'TryStatement',
@@ -4000,15 +4328,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     };
 
     PlaceHolders = {
-        ArrowParameterPlaceHolder: {
-            type: 'ArrowParameterPlaceHolder'
-        }
-    };
-
-    PropertyKind = {
-        Data: 1,
-        Get: 2,
-        Set: 4
+        ArrowParameterPlaceHolder: 'ArrowParameterPlaceHolder'
     };
 
     // Error messages should be identical to V8.
@@ -4018,6 +4338,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         UnexpectedString: 'Unexpected string',
         UnexpectedIdentifier: 'Unexpected identifier',
         UnexpectedReserved: 'Unexpected reserved word',
+        UnexpectedTemplate: 'Unexpected quasi %0',
         UnexpectedEOS: 'Unexpected end of input',
         NewlineAfterThrow: 'Illegal newline after throw',
         InvalidRegExp: 'Invalid regular expression',
@@ -4039,13 +4360,23 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         StrictFunctionName: 'Function name may not be eval or arguments in strict mode',
         StrictOctalLiteral: 'Octal literals are not allowed in strict mode.',
         StrictDelete: 'Delete of an unqualified identifier in strict mode.',
-        StrictDuplicateProperty: 'Duplicate data property in object literal not allowed in strict mode',
-        AccessorDataProperty: 'Object literal may not have data and accessor property with the same name',
-        AccessorGetSet: 'Object literal may not have multiple get/set accessors with the same name',
         StrictLHSAssignment: 'Assignment to eval or arguments is not allowed in strict mode',
         StrictLHSPostfix: 'Postfix increment/decrement may not have eval or arguments operand in strict mode',
         StrictLHSPrefix: 'Prefix increment/decrement may not have eval or arguments operand in strict mode',
-        StrictReservedWord: 'Use of future reserved word in strict mode'
+        StrictReservedWord: 'Use of future reserved word in strict mode',
+        TemplateOctalLiteral: 'Octal literals are not allowed in template strings.',
+        ParameterAfterRestParameter: 'Rest parameter must be last formal parameter',
+        DefaultRestParameter: 'Unexpected token =',
+        ObjectPatternAsRestParameter: 'Unexpected token {',
+        DuplicateProtoProperty: 'Duplicate __proto__ fields are not allowed in object literals',
+        ConstructorSpecialMethod: 'Class constructor may not be an accessor',
+        DuplicateConstructor: 'A class may only have one constructor',
+        StaticPrototype: 'Classes may not have static property named prototype',
+        MissingFromClause: 'Unexpected token',
+        NoAsAfterImportNamespace: 'Unexpected token',
+        InvalidModuleSpecifier: 'Unexpected token',
+        IllegalImportDeclaration: 'Unexpected token',
+        IllegalExportDeclaration: 'Unexpected token'
     };
 
     // See also tools/generate-unicode-regex.py.
@@ -4078,6 +4409,28 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return '01234567'.indexOf(ch) >= 0;
     }
 
+    function octalToDecimal(ch) {
+        // \0 is not octal escape sequence
+        var octal = (ch !== '0'), code = '01234567'.indexOf(ch);
+
+        if (index < length && isOctalDigit(source[index])) {
+            octal = true;
+            code = code * 8 + '01234567'.indexOf(source[index++]);
+
+            // 3 digits are only allowed when string starts
+            // with 0, 1, 2, 3
+            if ('0123'.indexOf(ch) >= 0 &&
+                    index < length &&
+                    isOctalDigit(source[index])) {
+                code = code * 8 + '01234567'.indexOf(source[index++]);
+            }
+        }
+
+        return {
+            code: code,
+            octal: octal
+        };
+    }
 
     // 7.2 White Space
 
@@ -4115,10 +4468,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
     function isFutureReservedWord(id) {
         switch (id) {
-        case 'class':
         case 'enum':
         case 'export':
-        case 'extends':
         case 'import':
         case 'super':
             return true;
@@ -4126,6 +4477,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return false;
         }
     }
+
+    // 11.6.2.2 Future Reserved Words
 
     function isStrictModeReservedWord(id) {
         switch (id) {
@@ -4151,9 +4504,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     // 7.6.1.1 Keywords
 
     function isKeyword(id) {
-        if (strict && isStrictModeReservedWord(id)) {
-            return true;
-        }
 
         // 'const' is specialized as Keyword in V8.
         // 'yield' and 'let' are for compatibility with SpiderMonkey and ES.next.
@@ -4193,13 +4543,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         assert(typeof start === 'number', 'Comment must have valid position');
 
-        // Because the way the actual token is scanned, often the comments
-        // (if any) are skipped twice during the lexical analysis.
-        // Thus, we need to skip adding a comment if the comment array already
-        // handled it.
-        if (state.lastCommentStart >= start) {
-            return;
-        }
         state.lastCommentStart = start;
 
         comment = {
@@ -4234,6 +4577,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             ch = source.charCodeAt(index);
             ++index;
             if (isLineTerminator(ch)) {
+                hasLineTerminator = true;
                 if (extra.comments) {
                     comment = source.slice(start + offset, index - 1);
                     loc.end = {
@@ -4280,12 +4624,10 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 if (ch === 0x0D && source.charCodeAt(index + 1) === 0x0A) {
                     ++index;
                 }
+                hasLineTerminator = true;
                 ++lineNumber;
                 ++index;
                 lineStart = index;
-                if (index >= length) {
-                    throwUnexpectedToken();
-                }
             } else if (ch === 0x2A) {
                 // Block comment ends with '*/'.
                 if (source.charCodeAt(index + 1) === 0x2F) {
@@ -4307,11 +4649,21 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
         }
 
-        throwUnexpectedToken();
+        // Ran off the end of the file - the whole thing is a comment
+        if (extra.comments) {
+            loc.end = {
+                line: lineNumber,
+                column: index - lineStart
+            };
+            comment = source.slice(start + 2, index);
+            addComment('Block', comment, start, index, loc);
+        }
+        tolerateUnexpectedToken();
     }
 
     function skipComment() {
         var ch, start;
+        hasLineTerminator = false;
 
         start = (index === 0);
         while (index < length) {
@@ -4320,6 +4672,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             if (isWhiteSpace(ch)) {
                 ++index;
             } else if (isLineTerminator(ch)) {
+                hasLineTerminator = true;
                 ++index;
                 if (ch === 0x0D && source.charCodeAt(index) === 0x0A) {
                     ++index;
@@ -4515,154 +4868,101 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     // 7.7 Punctuators
 
     function scanPunctuator() {
-        var start = index,
-            code = source.charCodeAt(index),
-            code2,
-            ch1 = source[index],
-            ch2,
-            ch3,
-            ch4;
+        var token, str;
 
-        switch (code) {
+        token = {
+            type: Token.Punctuator,
+            value: '',
+            lineNumber: lineNumber,
+            lineStart: lineStart,
+            start: index,
+            end: index
+        };
 
         // Check for most common single-character punctuators.
-        case 0x2E:  // . dot
-        case 0x28:  // ( open bracket
-        case 0x29:  // ) close bracket
-        case 0x3B:  // ; semicolon
-        case 0x2C:  // , comma
-        case 0x7B:  // { open curly brace
-        case 0x7D:  // } close curly brace
-        case 0x5B:  // [
-        case 0x5D:  // ]
-        case 0x3A:  // :
-        case 0x3F:  // ?
-        case 0x7E:  // ~
-            ++index;
+        str = source[index];
+        switch (str) {
+
+        case '(':
             if (extra.tokenize) {
-                if (code === 0x28) {
-                    extra.openParenToken = extra.tokens.length;
-                } else if (code === 0x7B) {
-                    extra.openCurlyToken = extra.tokens.length;
-                }
+                extra.openParenToken = extra.tokens.length;
             }
-            return {
-                type: Token.Punctuator,
-                value: String.fromCharCode(code),
-                lineNumber: lineNumber,
-                lineStart: lineStart,
-                start: start,
-                end: index
-            };
+            ++index;
+            break;
+
+        case '{':
+            if (extra.tokenize) {
+                extra.openCurlyToken = extra.tokens.length;
+            }
+            state.curlyStack.push('{');
+            ++index;
+            break;
+
+        case '.':
+            ++index;
+            if (source[index] === '.' && source[index + 1] === '.') {
+                // Spread operator: ...
+                index += 2;
+                str = '...';
+            }
+            break;
+
+        case '}':
+            ++index;
+            state.curlyStack.pop();
+            break;
+        case ')':
+        case ';':
+        case ',':
+        case '[':
+        case ']':
+        case ':':
+        case '?':
+        case '~':
+            ++index;
+            break;
 
         default:
-            code2 = source.charCodeAt(index + 1);
+            // 4-character punctuator.
+            str = source.substr(index, 4);
+            if (str === '>>>=') {
+                index += 4;
+            } else {
 
-            // '=' (U+003D) marks an assignment or comparison operator.
-            if (code2 === 0x3D) {
-                switch (code) {
-                case 0x2B:  // +
-                case 0x2D:  // -
-                case 0x2F:  // /
-                case 0x3C:  // <
-                case 0x3E:  // >
-                case 0x5E:  // ^
-                case 0x7C:  // |
-                case 0x25:  // %
-                case 0x26:  // &
-                case 0x2A:  // *
-                    index += 2;
-                    return {
-                        type: Token.Punctuator,
-                        value: String.fromCharCode(code) + String.fromCharCode(code2),
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
-                        start: start,
-                        end: index
-                    };
+                // 3-character punctuators.
+                str = str.substr(0, 3);
+                if (str === '===' || str === '!==' || str === '>>>' ||
+                    str === '<<=' || str === '>>=') {
+                    index += 3;
+                } else {
 
-                case 0x21: // !
-                case 0x3D: // =
-                    index += 2;
+                    // 2-character punctuators.
+                    str = str.substr(0, 2);
+                    if (str === '&&' || str === '||' || str === '==' || str === '!=' ||
+                        str === '+=' || str === '-=' || str === '*=' || str === '/=' ||
+                        str === '++' || str === '--' || str === '<<' || str === '>>' ||
+                        str === '&=' || str === '|=' || str === '^=' || str === '%=' ||
+                        str === '<=' || str === '>=' || str === '=>') {
+                        index += 2;
+                    } else {
 
-                    // !== and ===
-                    if (source.charCodeAt(index) === 0x3D) {
-                        ++index;
+                        // 1-character punctuators.
+                        str = source[index];
+                        if ('<>=!+-*%&|^/'.indexOf(str) >= 0) {
+                            ++index;
+                        }
                     }
-                    return {
-                        type: Token.Punctuator,
-                        value: source.slice(start, index),
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
-                        start: start,
-                        end: index
-                    };
                 }
             }
         }
 
-        // 4-character punctuator: >>>=
-
-        ch4 = source.substr(index, 4);
-
-        if (ch4 === '>>>=') {
-            index += 4;
-            return {
-                type: Token.Punctuator,
-                value: ch4,
-                lineNumber: lineNumber,
-                lineStart: lineStart,
-                start: start,
-                end: index
-            };
+        if (index === token.start) {
+            throwUnexpectedToken();
         }
 
-        // 3-character punctuators: === !== >>> <<= >>=
-
-        ch3 = ch4.substr(0, 3);
-
-        if (ch3 === '>>>' || ch3 === '<<=' || ch3 === '>>=') {
-            index += 3;
-            return {
-                type: Token.Punctuator,
-                value: ch3,
-                lineNumber: lineNumber,
-                lineStart: lineStart,
-                start: start,
-                end: index
-            };
-        }
-
-        // Other 2-character punctuators: ++ -- << >> && ||
-        ch2 = ch3.substr(0, 2);
-
-        if ((ch1 === ch2[1] && ('+-<>&|'.indexOf(ch1) >= 0)) || ch2 === '=>') {
-            index += 2;
-            return {
-                type: Token.Punctuator,
-                value: ch2,
-                lineNumber: lineNumber,
-                lineStart: lineStart,
-                start: start,
-                end: index
-            };
-        }
-
-        // 1-character punctuators: < > = ! + - * % & | ^ /
-
-        if ('<>=!+-*%&|^/'.indexOf(ch1) >= 0) {
-            ++index;
-            return {
-                type: Token.Punctuator,
-                value: ch1,
-                lineNumber: lineNumber,
-                lineStart: lineStart,
-                start: start,
-                end: index
-            };
-        }
-
-        throwUnexpectedToken();
+        token.end = index;
+        token.value = str;
+        return token;
     }
 
     // 7.8.3 Numeric Literals
@@ -4872,9 +5172,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     // 7.8.4 String Literals
 
     function scanStringLiteral() {
-        var str = '', quote, start, ch, code, unescaped, restore, octal = false, startLineNumber, startLineStart;
-        startLineNumber = lineNumber;
-        startLineStart = lineStart;
+        var str = '', quote, start, ch, unescaped, octToDec, octal = false;
 
         quote = source[index];
         assert((quote === '\'' || quote === '"'),
@@ -4899,14 +5197,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                             ++index;
                             str += scanUnicodeCodePointEscape();
                         } else {
-                            restore = index;
                             unescaped = scanHexEscape(ch);
-                            if (unescaped) {
-                                str += unescaped;
-                            } else {
-                                index = restore;
-                                str += ch;
+                            if (!unescaped) {
+                                throw throwUnexpectedToken();
                             }
+                            str += unescaped;
                         }
                         break;
                     case 'n':
@@ -4927,29 +5222,16 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     case 'v':
                         str += '\x0B';
                         break;
+                    case '8':
+                    case '9':
+                        throw throwUnexpectedToken();
 
                     default:
                         if (isOctalDigit(ch)) {
-                            code = '01234567'.indexOf(ch);
+                            octToDec = octalToDecimal(ch);
 
-                            // \0 is not octal escape sequence
-                            if (code !== 0) {
-                                octal = true;
-                            }
-
-                            if (index < length && isOctalDigit(source[index])) {
-                                octal = true;
-                                code = code * 8 + '01234567'.indexOf(source[index++]);
-
-                                // 3 digits are only allowed when string starts
-                                // with 0, 1, 2, 3
-                                if ('0123'.indexOf(ch) >= 0 &&
-                                        index < length &&
-                                        isOctalDigit(source[index])) {
-                                    code = code * 8 + '01234567'.indexOf(source[index++]);
-                                }
-                            }
-                            str += String.fromCharCode(code);
+                            octal = octToDec.octal || octal;
+                            str += String.fromCharCode(octToDec.code);
                         } else {
                             str += ch;
                         }
@@ -4977,8 +5259,128 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             type: Token.StringLiteral,
             value: str,
             octal: octal,
-            startLineNumber: startLineNumber,
-            startLineStart: startLineStart,
+            lineNumber: startLineNumber,
+            lineStart: startLineStart,
+            start: start,
+            end: index
+        };
+    }
+
+    function scanTemplate() {
+        var cooked = '', ch, start, rawOffset, terminated, head, tail, restore, unescaped;
+
+        terminated = false;
+        tail = false;
+        start = index;
+        head = (source[index] === '`');
+        rawOffset = 2;
+
+        ++index;
+
+        while (index < length) {
+            ch = source[index++];
+            if (ch === '`') {
+                rawOffset = 1;
+                tail = true;
+                terminated = true;
+                break;
+            } else if (ch === '$') {
+                if (source[index] === '{') {
+                    state.curlyStack.push('${');
+                    ++index;
+                    terminated = true;
+                    break;
+                }
+                cooked += ch;
+            } else if (ch === '\\') {
+                ch = source[index++];
+                if (!isLineTerminator(ch.charCodeAt(0))) {
+                    switch (ch) {
+                    case 'n':
+                        cooked += '\n';
+                        break;
+                    case 'r':
+                        cooked += '\r';
+                        break;
+                    case 't':
+                        cooked += '\t';
+                        break;
+                    case 'u':
+                    case 'x':
+                        if (source[index] === '{') {
+                            ++index;
+                            cooked += scanUnicodeCodePointEscape();
+                        } else {
+                            restore = index;
+                            unescaped = scanHexEscape(ch);
+                            if (unescaped) {
+                                cooked += unescaped;
+                            } else {
+                                index = restore;
+                                cooked += ch;
+                            }
+                        }
+                        break;
+                    case 'b':
+                        cooked += '\b';
+                        break;
+                    case 'f':
+                        cooked += '\f';
+                        break;
+                    case 'v':
+                        cooked += '\v';
+                        break;
+
+                    default:
+                        if (ch === '0') {
+                            if (isDecimalDigit(source.charCodeAt(index))) {
+                                // Illegal: \01 \02 and so on
+                                throwError(Messages.TemplateOctalLiteral);
+                            }
+                            cooked += '\0';
+                        } else if (isOctalDigit(ch)) {
+                            // Illegal: \1 \2
+                            throwError(Messages.TemplateOctalLiteral);
+                        } else {
+                            cooked += ch;
+                        }
+                        break;
+                    }
+                } else {
+                    ++lineNumber;
+                    if (ch === '\r' && source[index] === '\n') {
+                        ++index;
+                    }
+                    lineStart = index;
+                }
+            } else if (isLineTerminator(ch.charCodeAt(0))) {
+                ++lineNumber;
+                if (ch === '\r' && source[index] === '\n') {
+                    ++index;
+                }
+                lineStart = index;
+                cooked += '\n';
+            } else {
+                cooked += ch;
+            }
+        }
+
+        if (!terminated) {
+            throwUnexpectedToken();
+        }
+
+        if (!head) {
+            state.curlyStack.pop();
+        }
+
+        return {
+            type: Token.Template,
+            value: {
+                cooked: cooked,
+                raw: source.slice(start + 1, index - rawOffset)
+            },
+            head: head,
+            tail: tail,
             lineNumber: lineNumber,
             lineStart: lineStart,
             start: start,
@@ -4987,14 +5389,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function testRegExp(pattern, flags) {
-        var tmp = pattern,
-            value;
+        var tmp = pattern;
 
         if (flags.indexOf('u') >= 0) {
-            // Replace each astral symbol and every Unicode code point
-            // escape sequence with a single ASCII symbol to avoid throwing on
-            // regular expressions that are only valid in combination with the
-            // `/u` flag.
+            // Replace each astral symbol and every Unicode escape sequence
+            // that possibly represents an astral symbol or a paired surrogate
+            // with a single ASCII symbol to avoid throwing on regular
+            // expressions that are only valid in combination with the `/u`
+            // flag.
             // Note: replacing with the ASCII symbol `x` might cause false
             // negatives in unlikely scenarios. For example, `[\u{61}-b]` is a
             // perfectly valid pattern that is equivalent to `[a-b]`, but it
@@ -5004,16 +5406,19 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     if (parseInt($1, 16) <= 0x10FFFF) {
                         return 'x';
                     }
-                    throwError(Messages.InvalidRegExp);
+                    throwUnexpectedToken(null, Messages.InvalidRegExp);
                 })
-                .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, 'x');
+                .replace(
+                    /\\u([a-fA-F0-9]{4})|[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+                    'x'
+                );
         }
 
         // First, detect invalid regular expressions.
         try {
-            value = new RegExp(tmp);
+            RegExp(tmp);
         } catch (e) {
-            throwError(Messages.InvalidRegExp);
+            throwUnexpectedToken(null, Messages.InvalidRegExp);
         }
 
         // Return a regular expression object for this pattern-flag pair, or
@@ -5042,11 +5447,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 ch = source[index++];
                 // ECMA-262 7.8.5
                 if (isLineTerminator(ch.charCodeAt(0))) {
-                    throwError(Messages.UnterminatedRegExp);
+                    throwUnexpectedToken(null, Messages.UnterminatedRegExp);
                 }
                 str += ch;
             } else if (isLineTerminator(ch.charCodeAt(0))) {
-                throwError(Messages.UnterminatedRegExp);
+                throwUnexpectedToken(null, Messages.UnterminatedRegExp);
             } else if (classMarker) {
                 if (ch === ']') {
                     classMarker = false;
@@ -5062,7 +5467,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
 
         if (!terminated) {
-            throwError(Messages.UnterminatedRegExp);
+            throwUnexpectedToken(null, Messages.UnterminatedRegExp);
         }
 
         // Exclude leading and trailing slash.
@@ -5119,6 +5524,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function scanRegExp() {
+        scanning = true;
         var start, body, flags, value;
 
         lookahead = null;
@@ -5128,7 +5534,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         body = scanRegExpBody();
         flags = scanRegExpFlags();
         value = testRegExp(body.value, flags.value);
-
+        scanning = false;
         if (extra.tokenize) {
             return {
                 type: Token.RegularExpression,
@@ -5271,9 +5677,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function advance() {
-        var ch;
-
-        skipComment();
+        var ch, token;
 
         if (index >= length) {
             return {
@@ -5288,7 +5692,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         ch = source.charCodeAt(index);
 
         if (isIdentifierStart(ch)) {
-            return scanIdentifier();
+            token = scanIdentifier();
+            if (strict && isStrictModeReservedWord(token.value)) {
+                token.type = Token.Keyword;
+            }
+            return token;
         }
 
         // Very common: ( and ) and ;
@@ -5300,7 +5708,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (ch === 0x27 || ch === 0x22) {
             return scanStringLiteral();
         }
-
 
         // Dot (.) U+002E can also start a floating-point number, hence the need
         // to check the next character.
@@ -5320,13 +5727,18 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return advanceSlash();
         }
 
+        // Template literals start with ` (U+0060) for template head
+        // or } (U+007D) for template middle or template tail.
+        if (ch === 0x60 || (ch === 0x7D && state.curlyStack[state.curlyStack.length - 1] === '${')) {
+            return scanTemplate();
+        }
+
         return scanPunctuator();
     }
 
     function collectToken() {
         var loc, token, value, entry;
 
-        skipComment();
         loc = {
             start: {
                 line: lineNumber,
@@ -5362,36 +5774,45 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
     function lex() {
         var token;
+        scanning = true;
+
+        lastIndex = index;
+        lastLineNumber = lineNumber;
+        lastLineStart = lineStart;
+
+        skipComment();
 
         token = lookahead;
-        index = token.end;
-        lineNumber = token.lineNumber;
-        lineStart = token.lineStart;
+
+        startIndex = index;
+        startLineNumber = lineNumber;
+        startLineStart = lineStart;
 
         lookahead = (typeof extra.tokens !== 'undefined') ? collectToken() : advance();
-
-        index = token.end;
-        lineNumber = token.lineNumber;
-        lineStart = token.lineStart;
-
+        scanning = false;
         return token;
     }
 
     function peek() {
-        var pos, line, start;
+        scanning = true;
 
-        pos = index;
-        line = lineNumber;
-        start = lineStart;
+        skipComment();
+
+        lastIndex = index;
+        lastLineNumber = lineNumber;
+        lastLineStart = lineStart;
+
+        startIndex = index;
+        startLineNumber = lineNumber;
+        startLineStart = lineStart;
+
         lookahead = (typeof extra.tokens !== 'undefined') ? collectToken() : advance();
-        index = pos;
-        lineNumber = line;
-        lineStart = start;
+        scanning = false;
     }
 
     function Position() {
-        this.line = lineNumber;
-        this.column = index - lineStart;
+        this.line = startLineNumber;
+        this.column = startIndex - startLineStart;
     }
 
     function SourceLocation() {
@@ -5400,32 +5821,16 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function WrappingSourceLocation(startToken) {
-        if (startToken.type === Token.StringLiteral) {
-            this.start = {
-                line: startToken.startLineNumber,
-                column: startToken.start - startToken.startLineStart
-            };
-        } else {
-            this.start = {
-                line: startToken.lineNumber,
-                column: startToken.start - startToken.lineStart
-            };
-        }
+        this.start = {
+            line: startToken.lineNumber,
+            column: startToken.start - startToken.lineStart
+        };
         this.end = null;
     }
 
     function Node() {
-        // Skip comment.
-        index = lookahead.start;
-        if (lookahead.type === Token.StringLiteral) {
-            lineNumber = lookahead.startLineNumber;
-            lineStart = lookahead.startLineStart;
-        } else {
-            lineNumber = lookahead.lineNumber;
-            lineStart = lookahead.lineStart;
-        }
         if (extra.range) {
-            this.range = [index, 0];
+            this.range = [startIndex, 0];
         }
         if (extra.loc) {
             this.loc = new SourceLocation();
@@ -5512,10 +5917,13 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         finish: function () {
             if (extra.range) {
-                this.range[1] = index;
+                this.range[1] = lastIndex;
             }
             if (extra.loc) {
-                this.loc.end = new Position();
+                this.loc.end = {
+                    line: lastLineNumber,
+                    column: lastIndex - lastLineStart
+                };
                 if (extra.source) {
                     this.loc.source = extra.source;
                 }
@@ -5533,13 +5941,19 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
+        finishArrayPattern: function (elements) {
+            this.type = Syntax.ArrayPattern;
+            this.elements = elements;
+            this.finish();
+            return this;
+        },
+
         finishArrowFunctionExpression: function (params, defaults, body, expression) {
             this.type = Syntax.ArrowFunctionExpression;
             this.id = null;
             this.params = params;
             this.defaults = defaults;
             this.body = body;
-            this.rest = null;
             this.generator = false;
             this.expression = expression;
             this.finish();
@@ -5549,6 +5963,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         finishAssignmentExpression: function (operator, left, right) {
             this.type = Syntax.AssignmentExpression;
             this.operator = operator;
+            this.left = left;
+            this.right = right;
+            this.finish();
+            return this;
+        },
+
+        finishAssignmentPattern: function (left, right) {
+            this.type = Syntax.AssignmentPattern;
             this.left = left;
             this.right = right;
             this.finish();
@@ -5589,6 +6011,31 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         finishCatchClause: function (param, body) {
             this.type = Syntax.CatchClause;
             this.param = param;
+            this.body = body;
+            this.finish();
+            return this;
+        },
+
+        finishClassBody: function (body) {
+            this.type = Syntax.ClassBody;
+            this.body = body;
+            this.finish();
+            return this;
+        },
+
+        finishClassDeclaration: function (id, superClass, body) {
+            this.type = Syntax.ClassDeclaration;
+            this.id = id;
+            this.superClass = superClass;
+            this.body = body;
+            this.finish();
+            return this;
+        },
+
+        finishClassExpression: function (id, superClass, body) {
+            this.type = Syntax.ClassExpression;
+            this.id = id;
+            this.superClass = superClass;
             this.body = body;
             this.finish();
             return this;
@@ -5663,7 +6110,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             this.params = params;
             this.defaults = defaults;
             this.body = body;
-            this.rest = null;
             this.generator = false;
             this.expression = false;
             this.finish();
@@ -5676,7 +6122,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             this.params = params;
             this.defaults = defaults;
             this.body = body;
-            this.rest = null;
             this.generator = false;
             this.expression = false;
             this.finish();
@@ -5742,6 +6187,13 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
+        finishObjectPattern: function (properties) {
+            this.type = Syntax.ObjectPattern;
+            this.properties = properties;
+            this.finish();
+            return this;
+        },
+
         finishPostfixExpression: function (operator, argument) {
             this.type = Syntax.UpdateExpression;
             this.operator = operator;
@@ -5754,17 +6206,29 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         finishProgram: function (body) {
             this.type = Syntax.Program;
             this.body = body;
+            if (sourceType === 'module') {
+                // very restrictive for now
+                this.sourceType = sourceType;
+            }
             this.finish();
             return this;
         },
 
-        finishProperty: function (kind, key, value, method, shorthand) {
+        finishProperty: function (kind, key, computed, value, method, shorthand) {
             this.type = Syntax.Property;
             this.key = key;
+            this.computed = computed;
             this.value = value;
             this.kind = kind;
             this.method = method;
             this.shorthand = shorthand;
+            this.finish();
+            return this;
+        },
+
+        finishRestElement: function (argument) {
+            this.type = Syntax.RestElement;
+            this.argument = argument;
             this.finish();
             return this;
         },
@@ -5783,6 +6247,13 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
+        finishSpreadElement: function (argument) {
+            this.type = Syntax.SpreadElement;
+            this.argument = argument;
+            this.finish();
+            return this;
+        },
+
         finishSwitchCase: function (test, consequent) {
             this.type = Syntax.SwitchCase;
             this.test = test;
@@ -5791,10 +6262,40 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
+        finishSuper: function () {
+            this.type = Syntax.Super;
+            this.finish();
+            return this;
+        },
+
         finishSwitchStatement: function (discriminant, cases) {
             this.type = Syntax.SwitchStatement;
             this.discriminant = discriminant;
             this.cases = cases;
+            this.finish();
+            return this;
+        },
+
+        finishTaggedTemplateExpression: function (tag, quasi) {
+            this.type = Syntax.TaggedTemplateExpression;
+            this.tag = tag;
+            this.quasi = quasi;
+            this.finish();
+            return this;
+        },
+
+        finishTemplateElement: function (value, tail) {
+            this.type = Syntax.TemplateElement;
+            this.value = value;
+            this.tail = tail;
+            this.finish();
+            return this;
+        },
+
+        finishTemplateLiteral: function (quasis, expressions) {
+            this.type = Syntax.TemplateLiteral;
+            this.quasis = quasis;
+            this.expressions = expressions;
             this.finish();
             return this;
         },
@@ -5812,11 +6313,12 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
-        finishTryStatement: function (block, guardedHandlers, handlers, finalizer) {
+        finishTryStatement: function (block, handler, finalizer) {
             this.type = Syntax.TryStatement;
             this.block = block;
-            this.guardedHandlers = guardedHandlers;
-            this.handlers = handlers;
+            this.guardedHandlers = [];
+            this.handlers = handler ? [ handler ] : [];
+            this.handler = handler;
             this.finalizer = finalizer;
             this.finish();
             return this;
@@ -5831,7 +6333,15 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
-        finishVariableDeclaration: function (declarations, kind) {
+        finishVariableDeclaration: function (declarations) {
+            this.type = Syntax.VariableDeclaration;
+            this.declarations = declarations;
+            this.kind = 'var';
+            this.finish();
+            return this;
+        },
+
+        finishLexicalDeclaration: function (declarations, kind) {
             this.type = Syntax.VariableDeclaration;
             this.declarations = declarations;
             this.kind = kind;
@@ -5861,31 +6371,91 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             this.body = body;
             this.finish();
             return this;
+        },
+
+        finishExportSpecifier: function (local, exported) {
+            this.type = Syntax.ExportSpecifier;
+            this.exported = exported || local;
+            this.local = local;
+            this.finish();
+            return this;
+        },
+
+        finishImportDefaultSpecifier: function (local) {
+            this.type = Syntax.ImportDefaultSpecifier;
+            this.local = local;
+            this.finish();
+            return this;
+        },
+
+        finishImportNamespaceSpecifier: function (local) {
+            this.type = Syntax.ImportNamespaceSpecifier;
+            this.local = local;
+            this.finish();
+            return this;
+        },
+
+        finishExportNamedDeclaration: function (declaration, specifiers, src) {
+            this.type = Syntax.ExportNamedDeclaration;
+            this.declaration = declaration;
+            this.specifiers = specifiers;
+            this.source = src;
+            this.finish();
+            return this;
+        },
+
+        finishExportDefaultDeclaration: function (declaration) {
+            this.type = Syntax.ExportDefaultDeclaration;
+            this.declaration = declaration;
+            this.finish();
+            return this;
+        },
+
+        finishExportAllDeclaration: function (src) {
+            this.type = Syntax.ExportAllDeclaration;
+            this.source = src;
+            this.finish();
+            return this;
+        },
+
+        finishImportSpecifier: function (local, imported) {
+            this.type = Syntax.ImportSpecifier;
+            this.local = local || imported;
+            this.imported = imported;
+            this.finish();
+            return this;
+        },
+
+        finishImportDeclaration: function (specifiers, src) {
+            this.type = Syntax.ImportDeclaration;
+            this.specifiers = specifiers;
+            this.source = src;
+            this.finish();
+            return this;
         }
     };
 
-    // Return true if there is a line terminator before the next token.
 
-    function peekLineTerminator() {
-        var pos, line, start, found;
+    function recordError(error) {
+        var e, existing;
 
-        pos = index;
-        line = lineNumber;
-        start = lineStart;
-        skipComment();
-        found = lineNumber !== line;
-        index = pos;
-        lineNumber = line;
-        lineStart = start;
+        for (e = 0; e < extra.errors.length; e++) {
+            existing = extra.errors[e];
+            // Prevent duplicated error.
+            /* istanbul ignore next */
+            if (existing.index === error.index && existing.message === error.message) {
+                return;
+            }
+        }
 
-        return found;
+        extra.errors.push(error);
     }
 
     function createError(line, pos, description) {
         var error = new Error('Line ' + line + ': ' + description);
         error.index = pos;
         error.lineNumber = line;
-        error.column = pos - lineStart + 1;
+        error.column = pos - (scanning ? lineStart : lastLineStart) + 1;
         error.description = description;
         return error;
     }
@@ -5903,7 +6473,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
         );
 
-        throw createError(lineNumber, index, msg);
+        throw createError(lastLineNumber, lastIndex, msg);
     }
 
     function tolerateError(messageFormat) {
@@ -5918,9 +6488,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
         );
 
-        error = createError(lineNumber, index, msg);
+        error = createError(lineNumber, lastIndex, msg);
         if (extra.errors) {
-            extra.errors.push(error);
+            recordError(error);
         } else {
             throw error;
         }
@@ -5929,30 +6499,36 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     // Throw an exception because of the token.
 
     function unexpectedTokenError(token, message) {
-        var msg = Messages.UnexpectedToken;
+        var value, msg = message || Messages.UnexpectedToken;
 
         if (token) {
-            msg = message ? message :
-                (token.type === Token.EOF) ? Messages.UnexpectedEOS :
-                (token.type === Token.Identifier) ? Messages.UnexpectedIdentifier :
-                (token.type === Token.NumericLiteral) ? Messages.UnexpectedNumber :
-                (token.type === Token.StringLiteral) ? Messages.UnexpectedString :
-                Messages.UnexpectedToken;
+            if (!message) {
+                msg = (token.type === Token.EOF) ? Messages.UnexpectedEOS :
+                    (token.type === Token.Identifier) ? Messages.UnexpectedIdentifier :
+                    (token.type === Token.NumericLiteral) ? Messages.UnexpectedNumber :
+                    (token.type === Token.StringLiteral) ? Messages.UnexpectedString :
+                    (token.type === Token.Template) ? Messages.UnexpectedTemplate :
+                    Messages.UnexpectedToken;
 
-            if (token.type === Token.Keyword) {
-                if (isFutureReservedWord(token.value)) {
-                    msg = Messages.UnexpectedReserved;
-                } else if (strict && isStrictModeReservedWord(token.value)) {
-                    msg = Messages.StrictReservedWord;
+                if (token.type === Token.Keyword) {
+                    if (isFutureReservedWord(token.value)) {
+                        msg = Messages.UnexpectedReserved;
+                    } else if (strict && isStrictModeReservedWord(token.value)) {
+                        msg = Messages.StrictReservedWord;
+                    }
                 }
             }
+
+            value = (token.type === Token.Template) ? token.value.raw : token.value;
+        } else {
+            value = 'ILLEGAL';
         }
 
-        msg = msg.replace('%0', token ? token.value : 'ILLEGAL');
+        msg = msg.replace('%0', value);
 
         return (token && typeof token.lineNumber === 'number') ?
             createError(token.lineNumber, token.start, msg) :
-            createError(lineNumber, index, msg);
+            createError(scanning ? lineNumber : lastLineNumber, scanning ? index : lastIndex, msg);
     }
 
     function throwUnexpectedToken(token, message) {
@@ -5962,7 +6538,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     function tolerateUnexpectedToken(token, message) {
         var error = unexpectedTokenError(token, message);
         if (extra.errors) {
-            extra.errors.push(error);
+            recordError(error);
         } else {
             throw error;
         }
@@ -6024,6 +6600,13 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return lookahead.type === Token.Keyword && lookahead.value === keyword;
     }
 
+    // Return true if the next token matches the specified contextual keyword
+    // (where an identifier is sometimes a keyword depending on the context)
+
+    function matchContextualKeyword(keyword) {
+        return lookahead.type === Token.Identifier && lookahead.value === keyword;
+    }
+
     // Return true if the next token is an assignment operator
 
     function matchAssign() {
@@ -6048,41 +6631,92 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function consumeSemicolon() {
-        var line, oldIndex = index, oldLineNumber = lineNumber,
-            oldLineStart = lineStart, oldLookahead = lookahead;
-
         // Catch the very common case first: immediately a semicolon (U+003B).
-        if (source.charCodeAt(index) === 0x3B || match(';')) {
+        if (source.charCodeAt(startIndex) === 0x3B || match(';')) {
             lex();
             return;
         }
 
-        line = lineNumber;
-        skipComment();
-        if (lineNumber !== line) {
-            index = oldIndex;
-            lineNumber = oldLineNumber;
-            lineStart = oldLineStart;
-            lookahead = oldLookahead;
+        if (hasLineTerminator) {
             return;
         }
+
+        // FIXME(ikarienator): this is seemingly an issue in the previous location info convention.
+        lastIndex = startIndex;
+        lastLineNumber = startLineNumber;
+        lastLineStart = startLineStart;
 
         if (lookahead.type !== Token.EOF && !match('}')) {
             throwUnexpectedToken(lookahead);
         }
     }
 
-    // Return true if provided expression is LeftHandSideExpression
-
-    function isLeftHandSide(expr) {
-        return expr.type === Syntax.Identifier || expr.type === Syntax.MemberExpression;
+    // Cover grammar support.
+    //
+    // When an assignment expression position starts with an left parenthesis, the determination of the type
+    // of the syntax is to be deferred arbitrarily long until the end of the parentheses pair (plus a lookahead)
+    // or the first comma. This situation also defers the determination of all the expressions nested in the pair.
+    //
+    // There are three productions that can be parsed in a parentheses pair that needs to be determined
+    // after the outermost pair is closed. They are:
+    //
+    //   1. AssignmentExpression
+    //   2. BindingElements
+    //   3. AssignmentTargets
+    //
+    // In order to avoid exponential backtracking, we use two flags to denote if the production can be
+    // binding element or assignment target.
+    //
+    // The three productions have the relationship:
+    //
+    //   BindingElements ⊆ AssignmentTargets ⊆ AssignmentExpression
+    //
+    // with a single exception that CoverInitializedName when used directly in an Expression, generates
+    // an early error. Therefore, we need the third state, firstCoverInitializedNameError, to track the
+    // first usage of CoverInitializedName and report it when we reached the end of the parentheses pair.
+    //
+    // isolateCoverGrammar function runs the given parser function with a new cover grammar context, and it does not
+    // effect the current flags. This means the production the parser parses is only used as an expression. Therefore
+    // the CoverInitializedName check is conducted.
+    //
+    // inheritCoverGrammar function runs the given parse function with a new cover grammar context, and it propagates
+    // the flags outside of the parser. This means the production the parser parses is used as a part of a potential
+    // pattern. The CoverInitializedName check is deferred.
+    function isolateCoverGrammar(parser) {
+        var oldIsBindingElement = isBindingElement,
+            oldIsAssignmentTarget = isAssignmentTarget,
+            oldFirstCoverInitializedNameError = firstCoverInitializedNameError,
+            result;
+        isBindingElement = true;
+        isAssignmentTarget = true;
+        firstCoverInitializedNameError = null;
+        result = parser();
+        if (firstCoverInitializedNameError !== null) {
+            throwUnexpectedToken(firstCoverInitializedNameError);
+        }
+        isBindingElement = oldIsBindingElement;
+        isAssignmentTarget = oldIsAssignmentTarget;
+        firstCoverInitializedNameError = oldFirstCoverInitializedNameError;
+        return result;
     }
 
-    // 11.1.4 Array Initialiser
+    function inheritCoverGrammar(parser) {
+        var oldIsBindingElement = isBindingElement,
+            oldIsAssignmentTarget = isAssignmentTarget,
+            oldFirstCoverInitializedNameError = firstCoverInitializedNameError,
+            result;
+        isBindingElement = true;
+        isAssignmentTarget = true;
+        firstCoverInitializedNameError = null;
+        result = parser();
+        isBindingElement = isBindingElement && oldIsBindingElement;
+        isAssignmentTarget = isAssignmentTarget && oldIsAssignmentTarget;
+        firstCoverInitializedNameError = oldFirstCoverInitializedNameError || firstCoverInitializedNameError;
+        return result;
+    }
 
-    function parseArrayInitialiser() {
-        var elements = [], node = new Node();
-
+    function parseArrayPattern() {
+        var node = new Node(), elements = [], rest, restNode;
         expect('[');
 
         while (!match(']')) {
@@ -6090,7 +6724,110 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 lex();
                 elements.push(null);
             } else {
-                elements.push(parseAssignmentExpression());
+                if (match('...')) {
+                    restNode = new Node();
+                    lex();
+                    rest = parseVariableIdentifier();
+                    elements.push(restNode.finishRestElement(rest));
+                    break;
+                } else {
+                    elements.push(parsePatternWithDefault());
+                }
+                if (!match(']')) {
+                    expect(',');
+                }
+            }
+
+        }
+
+        expect(']');
+
+        return node.finishArrayPattern(elements);
+    }
+
+    function parsePropertyPattern() {
+        var node = new Node(), key, computed = match('['), init;
+        if (lookahead.type === Token.Identifier) {
+            key = parseVariableIdentifier();
+            if (match('=')) {
+                lex();
+                init = parseAssignmentExpression();
+                return node.finishProperty(
+                    'init', key, false,
+                    new WrappingNode(key).finishAssignmentPattern(key, init), false, false);
+            } else if (!match(':')) {
+                return node.finishProperty('init', key, false, key, false, true);
+            }
+        } else {
+            key = parseObjectPropertyKey();
+        }
+        expect(':');
+        init = parsePatternWithDefault();
+        return node.finishProperty('init', key, computed, init, false, false);
+    }
+
+    function parseObjectPattern() {
+        var node = new Node(), properties = [];
+
+        expect('{');
+
+        while (!match('}')) {
+            properties.push(parsePropertyPattern());
+            if (!match('}')) {
+                expect(',');
+            }
+        }
+
+        lex();
+
+        return node.finishObjectPattern(properties);
+    }
+
+    function parsePattern() {
+        if (lookahead.type === Token.Identifier) {
+            return parseVariableIdentifier();
+        } else if (match('[')) {
+            return parseArrayPattern();
+        } else if (match('{')) {
+            return parseObjectPattern();
+        }
+        throwUnexpectedToken(lookahead);
+    }
+
+    function parsePatternWithDefault() {
+        var startToken = lookahead, pattern, right;
+        pattern = parsePattern();
+        if (match('=')) {
+            lex();
+            right = isolateCoverGrammar(parseAssignmentExpression);
+            pattern = new WrappingNode(startToken).finishAssignmentPattern(pattern, right);
+        }
+        return pattern;
+    }
+
+    // 11.1.4 Array Initialiser
+
+    function parseArrayInitialiser() {
+        var elements = [], node = new Node(), restSpread;
+
+        expect('[');
+
+        while (!match(']')) {
+            if (match(',')) {
+                lex();
+                elements.push(null);
+            } else if (match('...')) {
+                restSpread = new Node();
+                lex();
+                restSpread.finishSpreadElement(inheritCoverGrammar(parseAssignmentExpression));
+
+                if (!match(']')) {
+                    isAssignmentTarget = isBindingElement = false;
+                    expect(',');
+                }
+                elements.push(restSpread);
+            } else {
+                elements.push(inheritCoverGrammar(parseAssignmentExpression));
 
                 if (!match(']')) {
                     expect(',');
@@ -6105,147 +6842,197 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
     // 11.1.5 Object Initialiser
 
-    function parsePropertyFunction(param, first) {
-        var previousStrict, body, node = new Node();
+    function parsePropertyFunction(node, paramInfo) {
+        var previousStrict, body;
+
+        isAssignmentTarget = isBindingElement = false;
 
         previousStrict = strict;
-        body = parseFunctionSourceElements();
-        if (first && strict && isRestrictedWord(param[0].name)) {
-            tolerateUnexpectedToken(first, Messages.StrictParamName);
+        body = isolateCoverGrammar(parseFunctionSourceElements);
+
+        if (strict && paramInfo.firstRestricted) {
+            tolerateUnexpectedToken(paramInfo.firstRestricted, paramInfo.message);
         }
+        if (strict && paramInfo.stricted) {
+            tolerateUnexpectedToken(paramInfo.stricted, paramInfo.message);
+        }
+
         strict = previousStrict;
-        return node.finishFunctionExpression(null, param, [], body);
+        return node.finishFunctionExpression(null, paramInfo.params, paramInfo.defaults, body);
     }
 
     function parsePropertyMethodFunction() {
-        var previousStrict, param, method;
+        var params, method, node = new Node();
 
-        previousStrict = strict;
-        strict = true;
-        param = parseParams();
-        method = parsePropertyFunction(param.params);
-        strict = previousStrict;
+        params = parseParams();
+        method = parsePropertyFunction(node, params);
 
         return method;
     }
 
     function parseObjectPropertyKey() {
-        var token, node = new Node();
+        var token, node = new Node(), expr;
 
         token = lex();
 
         // Note: This function is called only from parseObjectProperty(), where
         // EOF and Punctuator tokens are already filtered out.
 
-        if (token.type === Token.StringLiteral || token.type === Token.NumericLiteral) {
+        switch (token.type) {
+        case Token.StringLiteral:
+        case Token.NumericLiteral:
             if (strict && token.octal) {
                 tolerateUnexpectedToken(token, Messages.StrictOctalLiteral);
             }
             return node.finishLiteral(token);
+        case Token.Identifier:
+        case Token.BooleanLiteral:
+        case Token.NullLiteral:
+        case Token.Keyword:
+            return node.finishIdentifier(token.value);
+        case Token.Punctuator:
+            if (token.value === '[') {
+                expr = isolateCoverGrammar(parseAssignmentExpression);
+                expect(']');
+                return expr;
+            }
+            break;
         }
-
-        return node.finishIdentifier(token.value);
+        throwUnexpectedToken(token);
     }
 
-    function parseObjectProperty() {
-        var token, key, id, value, param, node = new Node();
+    function lookaheadPropertyName() {
+        switch (lookahead.type) {
+        case Token.Identifier:
+        case Token.StringLiteral:
+        case Token.BooleanLiteral:
+        case Token.NullLiteral:
+        case Token.NumericLiteral:
+        case Token.Keyword:
+            return true;
+        case Token.Punctuator:
+            return lookahead.value === '[';
+        }
+        return false;
+    }
 
-        token = lookahead;
+    // This function is to try to parse a MethodDefinition as defined in 14.3. But in the case of object literals,
+    // it might be called at a position where there is in fact a short hand identifier pattern or a data property.
+    // This can only be determined after we consumed up to the left parentheses.
+    //
+    // In order to avoid back tracking, it returns `null` if the position is not a MethodDefinition and the caller
+    // is responsible to visit other options.
+    function tryParseMethodDefinition(token, key, computed, node) {
+        var value, options, methodNode;
 
         if (token.type === Token.Identifier) {
+            // check for `get` and `set`;
 
-            id = parseObjectPropertyKey();
-
-            // Property Assignment: Getter and Setter.
-
-            if (token.value === 'get' && !(match(':') || match('('))) {
+            if (token.value === 'get' && lookaheadPropertyName()) {
+                computed = match('[');
                 key = parseObjectPropertyKey();
+                methodNode = new Node();
                 expect('(');
                 expect(')');
-                value = parsePropertyFunction([]);
-                return node.finishProperty('get', key, value, false, false);
-            }
-            if (token.value === 'set' && !(match(':') || match('('))) {
+                value = parsePropertyFunction(methodNode, {
+                    params: [],
+                    defaults: [],
+                    stricted: null,
+                    firstRestricted: null,
+                    message: null
+                });
+                return node.finishProperty('get', key, computed, value, false, false);
+            } else if (token.value === 'set' && lookaheadPropertyName()) {
+                computed = match('[');
                 key = parseObjectPropertyKey();
+                methodNode = new Node();
                 expect('(');
-                token = lookahead;
-                if (token.type !== Token.Identifier) {
-                    expect(')');
-                    tolerateUnexpectedToken(token);
-                    value = parsePropertyFunction([]);
-                } else {
-                    param = [ parseVariableIdentifier() ];
-                    expect(')');
-                    value = parsePropertyFunction(param, token);
-                }
-                return node.finishProperty('set', key, value, false, false);
-            }
-            if (match(':')) {
-                lex();
-                value = parseAssignmentExpression();
-                return node.finishProperty('init', id, value, false, false);
-            }
-            if (match('(')) {
-                value = parsePropertyMethodFunction();
-                return node.finishProperty('init', id, value, true, false);
-            }
 
-            value = id;
-            return node.finishProperty('init', id, value, false, true);
+                options = {
+                    params: [],
+                    defaultCount: 0,
+                    defaults: [],
+                    firstRestricted: null,
+                    paramSet: {}
+                };
+                if (match(')')) {
+                    tolerateUnexpectedToken(lookahead);
+                } else {
+                    parseParam(options);
+                    if (options.defaultCount === 0) {
+                        options.defaults = [];
+                    }
+                }
+                expect(')');
+
+                value = parsePropertyFunction(methodNode, options);
+                return node.finishProperty('set', key, computed, value, false, false);
+            }
         }
-        if (token.type === Token.EOF || token.type === Token.Punctuator) {
-            throwUnexpectedToken(token);
-        } else {
-            key = parseObjectPropertyKey();
-            if (match(':')) {
+
+        if (match('(')) {
+            value = parsePropertyMethodFunction();
+            return node.finishProperty('init', key, computed, value, true, false);
+        }
+
+        // Not a MethodDefinition.
+        return null;
+    }
+
+    function checkProto(key, computed, hasProto) {
+        if (computed === false && (key.type === Syntax.Identifier && key.name === '__proto__' ||
+            key.type === Syntax.Literal && key.value === '__proto__')) {
+            if (hasProto.value) {
+                tolerateError(Messages.DuplicateProtoProperty);
+            } else {
+                hasProto.value = true;
+            }
+        }
+    }
+
+    function parseObjectProperty(hasProto) {
+        var token = lookahead, node = new Node(), computed, key, maybeMethod, value;
+
+        computed = match('[');
+        key = parseObjectPropertyKey();
+        maybeMethod = tryParseMethodDefinition(token, key, computed, node);
+
+        if (maybeMethod) {
+            checkProto(maybeMethod.key, maybeMethod.computed, hasProto);
+            // finished
+            return maybeMethod;
+        }
+
+        // init property or short hand property.
+        checkProto(key, computed, hasProto);
+
+        if (match(':')) {
+            lex();
+            value = inheritCoverGrammar(parseAssignmentExpression);
+            return node.finishProperty('init', key, computed, value, false, false);
+        }
+
+        if (token.type === Token.Identifier) {
+            if (match('=')) {
+                firstCoverInitializedNameError = lookahead;
                 lex();
-                value = parseAssignmentExpression();
-                return node.finishProperty('init', key, value, false, false);
+                value = isolateCoverGrammar(parseAssignmentExpression);
+                return node.finishProperty('init', key, computed,
+                    new WrappingNode(token).finishAssignmentPattern(key, value), false, true);
             }
-            if (match('(')) {
-                value = parsePropertyMethodFunction();
-                return node.finishProperty('init', key, value, true, false);
-            }
-            throwUnexpectedToken(lex());
+            return node.finishProperty('init', key, computed, key, false, true);
         }
+
+        throwUnexpectedToken(lookahead);
     }
 
     function parseObjectInitialiser() {
-        var properties = [], property, name, key, kind, map = {}, toString = String, node = new Node();
+        var properties = [], hasProto = {value: false}, node = new Node();
 
         expect('{');
 
         while (!match('}')) {
-            property = parseObjectProperty();
-
-            if (property.key.type === Syntax.Identifier) {
-                name = property.key.name;
-            } else {
-                name = toString(property.key.value);
-            }
-            kind = (property.kind === 'init') ? PropertyKind.Data : (property.kind === 'get') ? PropertyKind.Get : PropertyKind.Set;
-
-            key = '$' + name;
-            if (Object.prototype.hasOwnProperty.call(map, key)) {
-                if (map[key] === PropertyKind.Data) {
-                    if (strict && kind === PropertyKind.Data) {
-                        tolerateError(Messages.StrictDuplicateProperty);
-                    } else if (kind !== PropertyKind.Data) {
-                        tolerateError(Messages.AccessorDataProperty);
-                    }
-                } else {
-                    if (kind === PropertyKind.Data) {
-                        tolerateError(Messages.AccessorDataProperty);
-                    } else if (map[key] & kind) {
-                        tolerateError(Messages.AccessorGetSet);
-                    }
-                }
-                map[key] |= kind;
-            } else {
-                map[key] = kind;
-            }
-
-            properties.push(property);
+            properties.push(parseObjectProperty(hasProto));
 
             if (!match('}')) {
                 expectCommaSeparator();
@@ -6257,24 +7044,162 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishObjectExpression(properties);
     }
 
+    function reinterpretExpressionAsPattern(expr) {
+        var i;
+        switch (expr.type) {
+        case Syntax.Identifier:
+        case Syntax.MemberExpression:
+        case Syntax.RestElement:
+        case Syntax.AssignmentPattern:
+            break;
+        case Syntax.SpreadElement:
+            expr.type = Syntax.RestElement;
+            reinterpretExpressionAsPattern(expr.argument);
+            break;
+        case Syntax.ArrayExpression:
+            expr.type = Syntax.ArrayPattern;
+            for (i = 0; i < expr.elements.length; i++) {
+                if (expr.elements[i] !== null) {
+                    reinterpretExpressionAsPattern(expr.elements[i]);
+                }
+            }
+            break;
+        case Syntax.ObjectExpression:
+            expr.type = Syntax.ObjectPattern;
+            for (i = 0; i < expr.properties.length; i++) {
+                reinterpretExpressionAsPattern(expr.properties[i].value);
+            }
+            break;
+        case Syntax.AssignmentExpression:
+            expr.type = Syntax.AssignmentPattern;
+            reinterpretExpressionAsPattern(expr.left);
+            break;
+        default:
+            // Allow other node type for tolerant parsing.
+            break;
+        }
+    }
+
+    function parseTemplateElement(option) {
+        var node, token;
+
+        if (lookahead.type !== Token.Template || (option.head && !lookahead.head)) {
+            throwUnexpectedToken();
+        }
+
+        node = new Node();
+        token = lex();
+
+        return node.finishTemplateElement({ raw: token.value.raw, cooked: token.value.cooked }, token.tail);
+    }
+
+    function parseTemplateLiteral() {
+        var quasi, quasis, expressions, node = new Node();
+
+        quasi = parseTemplateElement({ head: true });
+        quasis = [ quasi ];
+        expressions = [];
+
+        while (!quasi.tail) {
+            expressions.push(parseExpression());
+            quasi = parseTemplateElement({ head: false });
+            quasis.push(quasi);
+        }
+
+        return node.finishTemplateLiteral(quasis, expressions);
+    }
+
     // 11.1.6 The Grouping Operator
 
     function parseGroupExpression() {
-        var expr;
+        var expr, expressions, startToken, i;
 
         expect('(');
 
         if (match(')')) {
             lex();
-            return PlaceHolders.ArrowParameterPlaceHolder;
+            if (!match('=>')) {
+                expect('=>');
+            }
+            return {
+                type: PlaceHolders.ArrowParameterPlaceHolder,
+                params: []
+            };
         }
 
-        ++state.parenthesisCount;
+        startToken = lookahead;
+        if (match('...')) {
+            expr = parseRestElement();
+            expect(')');
+            if (!match('=>')) {
+                expect('=>');
+            }
+            return {
+                type: PlaceHolders.ArrowParameterPlaceHolder,
+                params: [expr]
+            };
+        }
 
-        expr = parseExpression();
+        isBindingElement = true;
+        expr = inheritCoverGrammar(parseAssignmentExpression);
+
+        if (match(',')) {
+            isAssignmentTarget = false;
+            expressions = [expr];
+
+            while (startIndex < length) {
+                if (!match(',')) {
+                    break;
+                }
+                lex();
+
+                if (match('...')) {
+                    if (!isBindingElement) {
+                        throwUnexpectedToken(lookahead);
+                    }
+                    expressions.push(parseRestElement());
+                    expect(')');
+                    if (!match('=>')) {
+                        expect('=>');
+                    }
+                    isBindingElement = false;
+                    for (i = 0; i < expressions.length; i++) {
+                        reinterpretExpressionAsPattern(expressions[i]);
+                    }
+                    return {
+                        type: PlaceHolders.ArrowParameterPlaceHolder,
+                        params: expressions
+                    };
+                }
+
+                expressions.push(inheritCoverGrammar(parseAssignmentExpression));
+            }
+
+            expr = new WrappingNode(startToken).finishSequenceExpression(expressions);
+        }
+
 
         expect(')');
 
+        if (match('=>')) {
+            if (!isBindingElement) {
+                throwUnexpectedToken(lookahead);
+            }
+
+            if (expr.type === Syntax.SequenceExpression) {
+                for (i = 0; i < expr.expressions.length; i++) {
+                    reinterpretExpressionAsPattern(expr.expressions[i]);
+                }
+            } else {
+                reinterpretExpressionAsPattern(expr);
+            }
+
+            expr = {
+                type: PlaceHolders.ArrowParameterPlaceHolder,
+                params: expr.type === Syntax.SequenceExpression ? expr.expressions : [expr]
+            };
+        }
+        isBindingElement = false;
         return expr;
     }
 
@@ -6285,15 +7210,16 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         var type, token, expr, node;
 
         if (match('(')) {
-            return parseGroupExpression();
+            isBindingElement = false;
+            return inheritCoverGrammar(parseGroupExpression);
         }
 
         if (match('[')) {
-            return parseArrayInitialiser();
+            return inheritCoverGrammar(parseArrayInitialiser);
         }
 
         if (match('{')) {
-            return parseObjectInitialiser();
+            return inheritCoverGrammar(parseObjectInitialiser);
         }
 
         type = lookahead.type;
@@ -6302,35 +7228,47 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (type === Token.Identifier) {
             expr = node.finishIdentifier(lex().value);
         } else if (type === Token.StringLiteral || type === Token.NumericLiteral) {
+            isAssignmentTarget = isBindingElement = false;
             if (strict && lookahead.octal) {
                 tolerateUnexpectedToken(lookahead, Messages.StrictOctalLiteral);
             }
             expr = node.finishLiteral(lex());
         } else if (type === Token.Keyword) {
+            isAssignmentTarget = isBindingElement = false;
             if (matchKeyword('function')) {
                 return parseFunctionExpression();
             }
             if (matchKeyword('this')) {
                 lex();
-                expr = node.finishThisExpression();
-            } else {
-                throwUnexpectedToken(lex());
+                return node.finishThisExpression();
             }
+            if (matchKeyword('class')) {
+                return parseClassExpression();
+            }
+            throwUnexpectedToken(lex());
         } else if (type === Token.BooleanLiteral) {
+            isAssignmentTarget = isBindingElement = false;
             token = lex();
             token.value = (token.value === 'true');
             expr = node.finishLiteral(token);
         } else if (type === Token.NullLiteral) {
+            isAssignmentTarget = isBindingElement = false;
             token = lex();
             token.value = null;
             expr = node.finishLiteral(token);
         } else if (match('/') || match('/=')) {
+            isAssignmentTarget = isBindingElement = false;
+            index = startIndex;
+
             if (typeof extra.tokens !== 'undefined') {
-                expr = node.finishLiteral(collectRegex());
+                token = collectRegex();
             } else {
-                expr = node.finishLiteral(scanRegExp());
+                token = scanRegExp();
             }
-            peek();
+            lex();
+            expr = node.finishLiteral(token);
+        } else if (type === Token.Template) {
+            expr = parseTemplateLiteral();
         } else {
             throwUnexpectedToken(lex());
         }
@@ -6346,8 +7284,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         expect('(');
 
         if (!match(')')) {
-            while (index < length) {
-                args.push(parseAssignmentExpression());
+            while (startIndex < length) {
+                args.push(isolateCoverGrammar(parseAssignmentExpression));
                 if (match(')')) {
                     break;
                 }
@@ -6383,7 +7321,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         expect('[');
 
-        expr = parseExpression();
+        expr = isolateCoverGrammar(parseExpression);
 
         expect(']');
 
@@ -6394,29 +7332,50 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         var callee, args, node = new Node();
 
         expectKeyword('new');
-        callee = parseLeftHandSideExpression();
+        callee = isolateCoverGrammar(parseLeftHandSideExpression);
         args = match('(') ? parseArguments() : [];
+
+        isAssignmentTarget = isBindingElement = false;
 
         return node.finishNewExpression(callee, args);
     }
 
     function parseLeftHandSideExpressionAllowCall() {
-        var expr, args, property, startToken, previousAllowIn = state.allowIn;
+        var quasi, expr, args, property, startToken, previousAllowIn = state.allowIn;
 
         startToken = lookahead;
         state.allowIn = true;
-        expr = matchKeyword('new') ? parseNewExpression() : parsePrimaryExpression();
+
+        if (matchKeyword('super') && state.inFunctionBody) {
+            expr = new Node();
+            lex();
+            expr = expr.finishSuper();
+            if (!match('(') && !match('.') && !match('[')) {
+                throwUnexpectedToken(lookahead);
+            }
+        } else {
+            expr = inheritCoverGrammar(matchKeyword('new') ? parseNewExpression : parsePrimaryExpression);
+        }
 
         for (;;) {
             if (match('.')) {
+                isBindingElement = false;
+                isAssignmentTarget = true;
                 property = parseNonComputedMember();
                 expr = new WrappingNode(startToken).finishMemberExpression('.', expr, property);
             } else if (match('(')) {
+                isBindingElement = false;
+                isAssignmentTarget = false;
                 args = parseArguments();
                 expr = new WrappingNode(startToken).finishCallExpression(expr, args);
             } else if (match('[')) {
+                isBindingElement = false;
+                isAssignmentTarget = true;
                 property = parseComputedMember();
                 expr = new WrappingNode(startToken).finishMemberExpression('[', expr, property);
+            } else if (lookahead.type === Token.Template && lookahead.head) {
+                quasi = parseTemplateLiteral();
+                expr = new WrappingNode(startToken).finishTaggedTemplateExpression(expr, quasi);
             } else {
                 break;
             }
@@ -6427,20 +7386,36 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function parseLeftHandSideExpression() {
-        var expr, property, startToken;
+        var quasi, expr, property, startToken;
         assert(state.allowIn, 'callee of new expression always allow in keyword.');
 
         startToken = lookahead;
 
-        expr = matchKeyword('new') ? parseNewExpression() : parsePrimaryExpression();
+        if (matchKeyword('super') && state.inFunctionBody) {
+            expr = new Node();
+            lex();
+            expr = expr.finishSuper();
+            if (!match('[') && !match('.')) {
+                throwUnexpectedToken(lookahead);
+            }
+        } else {
+            expr = inheritCoverGrammar(matchKeyword('new') ? parseNewExpression : parsePrimaryExpression);
+        }
 
         for (;;) {
             if (match('[')) {
+                isBindingElement = false;
+                isAssignmentTarget = true;
                 property = parseComputedMember();
                 expr = new WrappingNode(startToken).finishMemberExpression('[', expr, property);
             } else if (match('.')) {
+                isBindingElement = false;
+                isAssignmentTarget = true;
                 property = parseNonComputedMember();
                 expr = new WrappingNode(startToken).finishMemberExpression('.', expr, property);
+            } else if (lookahead.type === Token.Template && lookahead.head) {
+                quasi = parseTemplateLiteral();
+                expr = new WrappingNode(startToken).finishTaggedTemplateExpression(expr, quasi);
             } else {
                 break;
             }
@@ -6453,18 +7428,20 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     function parsePostfixExpression() {
         var expr, token, startToken = lookahead;
 
-        expr = parseLeftHandSideExpressionAllowCall();
+        expr = inheritCoverGrammar(parseLeftHandSideExpressionAllowCall);
 
-        if (lookahead.type === Token.Punctuator) {
-            if ((match('++') || match('--')) && !peekLineTerminator()) {
+        if (!hasLineTerminator && lookahead.type === Token.Punctuator) {
+            if (match('++') || match('--')) {
                 // 11.3.1, 11.3.2
                 if (strict && expr.type === Syntax.Identifier && isRestrictedWord(expr.name)) {
                     tolerateError(Messages.StrictLHSPostfix);
                 }
 
-                if (!isLeftHandSide(expr)) {
+                if (!isAssignmentTarget) {
                     tolerateError(Messages.InvalidLHSInAssignment);
                 }
+
+                isAssignmentTarget = isBindingElement = false;
 
                 token = lex();
                 expr = new WrappingNode(startToken).finishPostfixExpression(token.value, expr);
@@ -6484,30 +7461,32 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         } else if (match('++') || match('--')) {
             startToken = lookahead;
             token = lex();
-            expr = parseUnaryExpression();
+            expr = inheritCoverGrammar(parseUnaryExpression);
             // 11.4.4, 11.4.5
             if (strict && expr.type === Syntax.Identifier && isRestrictedWord(expr.name)) {
                 tolerateError(Messages.StrictLHSPrefix);
             }
 
-            if (!isLeftHandSide(expr)) {
+            if (!isAssignmentTarget) {
                 tolerateError(Messages.InvalidLHSInAssignment);
             }
-
             expr = new WrappingNode(startToken).finishUnaryExpression(token.value, expr);
+            isAssignmentTarget = isBindingElement = false;
         } else if (match('+') || match('-') || match('~') || match('!')) {
             startToken = lookahead;
             token = lex();
-            expr = parseUnaryExpression();
+            expr = inheritCoverGrammar(parseUnaryExpression);
             expr = new WrappingNode(startToken).finishUnaryExpression(token.value, expr);
+            isAssignmentTarget = isBindingElement = false;
         } else if (matchKeyword('delete') || matchKeyword('void') || matchKeyword('typeof')) {
             startToken = lookahead;
             token = lex();
-            expr = parseUnaryExpression();
+            expr = inheritCoverGrammar(parseUnaryExpression);
             expr = new WrappingNode(startToken).finishUnaryExpression(token.value, expr);
             if (strict && expr.operator === 'delete' && expr.argument.type === Syntax.Identifier) {
                 tolerateError(Messages.StrictDelete);
             }
+            isAssignmentTarget = isBindingElement = false;
         } else {
             expr = parsePostfixExpression();
         }
@@ -6598,21 +7577,19 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         var marker, markers, expr, token, prec, stack, right, operator, left, i;
 
         marker = lookahead;
-        left = parseUnaryExpression();
-        if (left === PlaceHolders.ArrowParameterPlaceHolder) {
-            return left;
-        }
+        left = inheritCoverGrammar(parseUnaryExpression);
 
         token = lookahead;
         prec = binaryPrecedence(token, state.allowIn);
         if (prec === 0) {
             return left;
         }
+        isAssignmentTarget = isBindingElement = false;
         token.prec = prec;
         lex();
 
         markers = [marker, lookahead];
-        right = parseUnaryExpression();
+        right = isolateCoverGrammar(parseUnaryExpression);
 
         stack = [left, token, right];
 
@@ -6633,7 +7610,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             token.prec = prec;
             stack.push(token);
             markers.push(lookahead);
-            expr = parseUnaryExpression();
+            expr = isolateCoverGrammar(parseUnaryExpression);
             stack.push(expr);
         }
 
@@ -6657,20 +7634,18 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         startToken = lookahead;
 
-        expr = parseBinaryExpression();
-        if (expr === PlaceHolders.ArrowParameterPlaceHolder) {
-            return expr;
-        }
+        expr = inheritCoverGrammar(parseBinaryExpression);
         if (match('?')) {
             lex();
             previousAllowIn = state.allowIn;
             state.allowIn = true;
-            consequent = parseAssignmentExpression();
+            consequent = isolateCoverGrammar(parseAssignmentExpression);
             state.allowIn = previousAllowIn;
             expect(':');
-            alternate = parseAssignmentExpression();
+            alternate = isolateCoverGrammar(parseAssignmentExpression);
 
             expr = new WrappingNode(startToken).finishConditionalExpression(expr, consequent, alternate);
+            isAssignmentTarget = isBindingElement = false;
         }
 
         return expr;
@@ -6682,33 +7657,71 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (match('{')) {
             return parseFunctionSourceElements();
         }
-        return parseAssignmentExpression();
+        return isolateCoverGrammar(parseAssignmentExpression);
     }
 
-    function reinterpretAsCoverFormalsList(expressions) {
-        var i, len, param, params, defaults, defaultCount, options, rest, token;
+    function checkPatternParam(options, param) {
+        var i;
+        switch (param.type) {
+        case Syntax.Identifier:
+            validateParam(options, param, param.name);
+            break;
+        case Syntax.RestElement:
+            checkPatternParam(options, param.argument);
+            break;
+        case Syntax.AssignmentPattern:
+            checkPatternParam(options, param.left);
+            break;
+        case Syntax.ArrayPattern:
+            for (i = 0; i < param.elements.length; i++) {
+                if (param.elements[i] !== null) {
+                    checkPatternParam(options, param.elements[i]);
+                }
+            }
+            break;
+        default:
+            assert(param.type === Syntax.ObjectPattern, 'Invalid type');
+            for (i = 0; i < param.properties.length; i++) {
+                checkPatternParam(options, param.properties[i].value);
+            }
+            break;
+        }
+    }
+    function reinterpretAsCoverFormalsList(expr) {
+        var i, len, param, params, defaults, defaultCount, options, token;
 
-        params = [];
         defaults = [];
         defaultCount = 0;
-        rest = null;
+        params = [expr];
+
+        switch (expr.type) {
+        case Syntax.Identifier:
+            break;
+        case PlaceHolders.ArrowParameterPlaceHolder:
+            params = expr.params;
+            break;
+        default:
+            return null;
+        }
+
         options = {
             paramSet: {}
         };
 
-        for (i = 0, len = expressions.length; i < len; i += 1) {
-            param = expressions[i];
-            if (param.type === Syntax.Identifier) {
-                params.push(param);
-                defaults.push(null);
-                validateParam(options, param, param.name);
-            } else if (param.type === Syntax.AssignmentExpression) {
-                params.push(param.left);
+        for (i = 0, len = params.length; i < len; i += 1) {
+            param = params[i];
+            switch (param.type) {
+            case Syntax.AssignmentPattern:
+                params[i] = param.left;
                 defaults.push(param.right);
                 ++defaultCount;
-                validateParam(options, param.left, param.left.name);
-            } else {
-                return null;
+                checkPatternParam(options, param.left);
+                break;
+            default:
+                checkPatternParam(options, param);
+                params[i] = param;
+                defaults.push(null);
+                break;
             }
         }
 
@@ -6724,7 +7737,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return {
             params: params,
             defaults: defaults,
-            rest: rest,
             stricted: options.stricted,
             firstRestricted: options.firstRestricted,
             message: options.message
@@ -6734,6 +7746,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     function parseArrowFunctionExpression(options, node) {
         var previousStrict, body;
 
+        if (hasLineTerminator) {
+            tolerateUnexpectedToken(lookahead);
+        }
         expect('=>');
         previousStrict = strict;
 
@@ -6754,36 +7769,27 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     // 11.13 Assignment Operators
 
     function parseAssignmentExpression() {
-        var oldParenthesisCount, token, expr, right, list, startToken;
-
-        oldParenthesisCount = state.parenthesisCount;
+        var token, expr, right, list, startToken;
 
         startToken = lookahead;
         token = lookahead;
 
         expr = parseConditionalExpression();
 
-        if (expr === PlaceHolders.ArrowParameterPlaceHolder || match('=>')) {
-            if (state.parenthesisCount === oldParenthesisCount ||
-                    state.parenthesisCount === (oldParenthesisCount + 1)) {
-                if (expr.type === Syntax.Identifier) {
-                    list = reinterpretAsCoverFormalsList([ expr ]);
-                } else if (expr.type === Syntax.AssignmentExpression) {
-                    list = reinterpretAsCoverFormalsList([ expr ]);
-                } else if (expr.type === Syntax.SequenceExpression) {
-                    list = reinterpretAsCoverFormalsList(expr.expressions);
-                } else if (expr === PlaceHolders.ArrowParameterPlaceHolder) {
-                    list = reinterpretAsCoverFormalsList([]);
-                }
-                if (list) {
-                    return parseArrowFunctionExpression(list, new WrappingNode(startToken));
-                }
+        if (expr.type === PlaceHolders.ArrowParameterPlaceHolder || match('=>')) {
+            isAssignmentTarget = isBindingElement = false;
+            list = reinterpretAsCoverFormalsList(expr);
+
+            if (list) {
+                firstCoverInitializedNameError = null;
+                return parseArrowFunctionExpression(list, new WrappingNode(startToken));
             }
+
+            return expr;
         }
 
         if (matchAssign()) {
-            // LeftHandSideExpression
-            if (!isLeftHandSide(expr)) {
+            if (!isAssignmentTarget) {
                 tolerateError(Messages.InvalidLHSInAssignment);
             }
 
@@ -6792,9 +7798,16 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 tolerateUnexpectedToken(token, Messages.StrictLHSAssignment);
             }
 
+            if (!match('=')) {
+                isAssignmentTarget = isBindingElement = false;
+            } else {
+                reinterpretExpressionAsPattern(expr);
+            }
+
             token = lex();
-            right = parseAssignmentExpression();
+            right = isolateCoverGrammar(parseAssignmentExpression);
             expr = new WrappingNode(startToken).finishAssignmentExpression(token.value, expr, right);
+            firstCoverInitializedNameError = null;
         }
 
         return expr;
@@ -6805,17 +7818,17 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     function parseExpression() {
         var expr, startToken = lookahead, expressions;
 
-        expr = parseAssignmentExpression();
+        expr = isolateCoverGrammar(parseAssignmentExpression);
 
         if (match(',')) {
             expressions = [expr];
 
-            while (index < length) {
+            while (startIndex < length) {
                 if (!match(',')) {
                     break;
                 }
                 lex();
-                expressions.push(parseAssignmentExpression());
+                expressions.push(isolateCoverGrammar(parseAssignmentExpression));
             }
 
             expr = new WrappingNode(startToken).finishSequenceExpression(expressions);
@@ -6826,19 +7839,39 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
     // 12.1 Block
 
-    function parseStatementList() {
-        var list = [],
-            statement;
+    function parseStatementListItem() {
+        if (lookahead.type === Token.Keyword) {
+            switch (lookahead.value) {
+            case 'export':
+                if (sourceType !== 'module') {
+                    tolerateUnexpectedToken(lookahead, Messages.IllegalExportDeclaration);
+                }
+                return parseExportDeclaration();
+            case 'import':
+                if (sourceType !== 'module') {
+                    tolerateUnexpectedToken(lookahead, Messages.IllegalImportDeclaration);
+                }
+                return parseImportDeclaration();
+            case 'const':
+            case 'let':
+                return parseLexicalDeclaration({inFor: false});
+            case 'function':
+                return parseFunctionDeclaration(new Node());
+            case 'class':
+                return parseClassDeclaration();
+            }
+        }
 
-        while (index < length) {
+        return parseStatement();
+    }
+
+    function parseStatementList() {
+        var list = [];
+        while (startIndex < length) {
             if (match('}')) {
                 break;
             }
-            statement = parseSourceElement();
-            if (typeof statement === 'undefined') {
-                break;
-            }
-            list.push(statement);
+            list.push(parseStatementListItem());
         }
 
         return list;
@@ -6874,37 +7907,36 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishIdentifier(token.value);
     }
 
-    function parseVariableDeclaration(kind) {
+    function parseVariableDeclaration() {
         var init = null, id, node = new Node();
 
-        id = parseVariableIdentifier();
+        id = parsePattern();
 
         // 12.2.1
         if (strict && isRestrictedWord(id.name)) {
             tolerateError(Messages.StrictVarName);
         }
 
-        if (kind === 'const') {
-            expect('=');
-            init = parseAssignmentExpression();
-        } else if (match('=')) {
+        if (match('=')) {
             lex();
-            init = parseAssignmentExpression();
+            init = isolateCoverGrammar(parseAssignmentExpression);
+        } else if (id.type !== Syntax.Identifier) {
+            expect('=');
         }
 
         return node.finishVariableDeclarator(id, init);
     }
 
-    function parseVariableDeclarationList(kind) {
+    function parseVariableDeclarationList() {
         var list = [];
 
         do {
-            list.push(parseVariableDeclaration(kind));
+            list.push(parseVariableDeclaration());
             if (!match(',')) {
                 break;
             }
             lex();
-        } while (index < length);
+        } while (startIndex < length);
 
         return list;
     }
@@ -6918,29 +7950,84 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         consumeSemicolon();
 
-        return node.finishVariableDeclaration(declarations, 'var');
+        return node.finishVariableDeclaration(declarations);
     }
 
-    // kind may be `const` or `let`
-    // Both are experimental and not in the specification yet.
-    // see http://wiki.ecmascript.org/doku.php?id=harmony:const
-    // and http://wiki.ecmascript.org/doku.php?id=harmony:let
-    function parseConstLetDeclaration(kind) {
-        var declarations, node = new Node();
+    function parseLexicalBinding(kind, options) {
+        var init = null, id, node = new Node();
 
-        expectKeyword(kind);
+        id = parsePattern();
 
-        declarations = parseVariableDeclarationList(kind);
+        // 12.2.1
+        if (strict && id.type === Syntax.Identifier && isRestrictedWord(id.name)) {
+            tolerateError(Messages.StrictVarName);
+        }
+
+        if (kind === 'const') {
+            if (!matchKeyword('in')) {
+                expect('=');
+                init = isolateCoverGrammar(parseAssignmentExpression);
+            }
+        } else if ((!options.inFor && id.type !== Syntax.Identifier) || match('=')) {
+            expect('=');
+            init = isolateCoverGrammar(parseAssignmentExpression);
+        }
+
+        return node.finishVariableDeclarator(id, init);
+    }
+
+    function parseBindingList(kind, options) {
+        var list = [];
+
+        do {
+            list.push(parseLexicalBinding(kind, options));
+            if (!match(',')) {
+                break;
+            }
+            lex();
+        } while (startIndex < length);
+
+        return list;
+    }
+
+    function parseLexicalDeclaration(options) {
+        var kind, declarations, node = new Node();
+
+        kind = lex().value;
+        assert(kind === 'let' || kind === 'const', 'Lexical declaration must be either let or const');
+
+        declarations = parseBindingList(kind, options);
 
         consumeSemicolon();
 
-        return node.finishVariableDeclaration(declarations, kind);
+        return node.finishLexicalDeclaration(declarations, kind);
+    }
+
+    function parseRestElement() {
+        var param, node = new Node();
+
+        lex();
+
+        if (match('{')) {
+            throwError(Messages.ObjectPatternAsRestParameter);
+        }
+
+        param = parseVariableIdentifier();
+
+        if (match('=')) {
+            throwError(Messages.DefaultRestParameter);
+        }
+
+        if (!match(')')) {
+            throwError(Messages.ParameterAfterRestParameter);
+        }
+
+        return node.finishRestElement(param);
     }
 
     // 12.3 Empty Statement
 
-    function parseEmptyStatement() {
-        var node = new Node();
+    function parseEmptyStatement(node) {
         expect(';');
         return node.finishEmptyStatement();
     }
@@ -7028,17 +8115,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishWhileStatement(test, body);
     }
 
-    function parseForVariableDeclaration() {
-        var token, declarations, node = new Node();
-
-        token = lex();
-        declarations = parseVariableDeclarationList();
-
-        return node.finishVariableDeclaration(declarations, token.value);
-    }
-
     function parseForStatement(node) {
-        var init, test, update, left, right, body, oldInIteration, previousAllowIn = state.allowIn;
+        var init, initSeq, initStartToken, test, update, left, right, kind, declarations,
+            body, oldInIteration, previousAllowIn = state.allowIn;
 
         init = test = update = null;
 
@@ -7049,9 +8128,12 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (match(';')) {
             lex();
         } else {
-            if (matchKeyword('var') || matchKeyword('let')) {
+            if (matchKeyword('var')) {
+                init = new Node();
+                lex();
+
                 state.allowIn = false;
-                init = parseForVariableDeclaration();
+                init = init.finishVariableDeclaration(parseVariableDeclarationList());
                 state.allowIn = previousAllowIn;
 
                 if (init.declarations.length === 1 && matchKeyword('in')) {
@@ -7059,27 +8141,54 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else {
+                    expect(';');
                 }
-            } else {
+            } else if (matchKeyword('const') || matchKeyword('let')) {
+                init = new Node();
+                kind = lex().value;
+
                 state.allowIn = false;
-                init = parseExpression();
+                declarations = parseBindingList(kind, {inFor: true});
                 state.allowIn = previousAllowIn;
 
-                if (matchKeyword('in')) {
-                    // LeftHandSideExpression
-                    if (!isLeftHandSide(init)) {
-                        tolerateError(Messages.InvalidLHSInForIn);
-                    }
-
+                if (declarations.length === 1 && declarations[0].init === null && matchKeyword('in')) {
+                    init = init.finishLexicalDeclaration(declarations, kind);
                     lex();
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else {
+                    consumeSemicolon();
+                    init = init.finishLexicalDeclaration(declarations, kind);
                 }
-            }
+            } else {
+                initStartToken = lookahead;
+                state.allowIn = false;
+                init = inheritCoverGrammar(parseAssignmentExpression);
+                state.allowIn = previousAllowIn;
 
-            if (typeof left === 'undefined') {
-                expect(';');
+                if (matchKeyword('in')) {
+                    if (!isAssignmentTarget) {
+                        tolerateError(Messages.InvalidLHSInForIn);
+                    }
+
+                    lex();
+                    reinterpretExpressionAsPattern(init);
+                    left = init;
+                    right = parseExpression();
+                    init = null;
+                } else {
+                    if (match(',')) {
+                        initSeq = [init];
+                        while (match(',')) {
+                            lex();
+                            initSeq.push(isolateCoverGrammar(parseAssignmentExpression));
+                        }
+                        init = new WrappingNode(initStartToken).finishSequenceExpression(initSeq);
+                    }
+                    expect(';');
+                }
             }
         }
 
@@ -7100,7 +8209,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         oldInIteration = state.inIteration;
         state.inIteration = true;
 
-        body = parseStatement();
+        body = isolateCoverGrammar(parseStatement);
 
         state.inIteration = oldInIteration;
 
@@ -7117,7 +8226,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         expectKeyword('continue');
 
         // Optimize the most common form: 'continue;'.
-        if (source.charCodeAt(index) === 0x3B) {
+        if (source.charCodeAt(startIndex) === 0x3B) {
             lex();
 
             if (!state.inIteration) {
@@ -7127,7 +8236,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return node.finishContinueStatement(null);
         }
 
-        if (peekLineTerminator()) {
+        if (hasLineTerminator) {
             if (!state.inIteration) {
                 throwError(Messages.IllegalContinue);
             }
@@ -7161,7 +8270,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         expectKeyword('break');
 
         // Catch the very common case first: immediately a semicolon (U+003B).
-        if (source.charCodeAt(index) === 0x3B) {
+        if (source.charCodeAt(lastIndex) === 0x3B) {
             lex();
 
             if (!(state.inIteration || state.inSwitch)) {
@@ -7171,7 +8280,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return node.finishBreakStatement(null);
         }
 
-        if (peekLineTerminator()) {
+        if (hasLineTerminator) {
             if (!(state.inIteration || state.inSwitch)) {
                 throwError(Messages.IllegalBreak);
             }
@@ -7209,15 +8318,16 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
 
         // 'return' followed by a space and an identifier is very common.
-        if (source.charCodeAt(index) === 0x20) {
-            if (isIdentifierStart(source.charCodeAt(index + 1))) {
+        if (source.charCodeAt(lastIndex) === 0x20) {
+            if (isIdentifierStart(source.charCodeAt(lastIndex + 1))) {
                 argument = parseExpression();
                 consumeSemicolon();
                 return node.finishReturnStatement(argument);
             }
         }
 
-        if (peekLineTerminator()) {
+        if (hasLineTerminator) {
+            // HACK
             return node.finishReturnStatement(null);
         }
 
@@ -7238,8 +8348,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         var object, body;
 
         if (strict) {
-            // TODO(ikarienator): Should we update the test cases instead?
-            skipComment();
             tolerateError(Messages.StrictModeWith);
         }
 
@@ -7270,11 +8378,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
         expect(':');
 
-        while (index < length) {
+        while (startIndex < length) {
             if (match('}') || matchKeyword('default') || matchKeyword('case')) {
                 break;
             }
-            statement = parseStatement();
+            statement = parseStatementListItem();
             consequent.push(statement);
         }
 
@@ -7305,7 +8413,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         state.inSwitch = true;
         defaultFound = false;
 
-        while (index < length) {
+        while (startIndex < length) {
             if (match('}')) {
                 break;
             }
@@ -7333,7 +8441,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         expectKeyword('throw');
 
-        if (peekLineTerminator()) {
+        if (hasLineTerminator) {
             throwError(Messages.NewlineAfterThrow);
         }
 
@@ -7356,7 +8464,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             throwUnexpectedToken(lookahead);
         }
 
-        param = parseVariableIdentifier();
+        param = parsePattern();
+
         // 12.14.1
         if (strict && isRestrictedWord(param.name)) {
             tolerateError(Messages.StrictCatchVariable);
@@ -7368,14 +8477,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function parseTryStatement(node) {
-        var block, handlers = [], finalizer = null;
+        var block, handler = null, finalizer = null;
 
         expectKeyword('try');
 
         block = parseBlock();
 
         if (matchKeyword('catch')) {
-            handlers.push(parseCatchClause());
+            handler = parseCatchClause();
         }
 
         if (matchKeyword('finally')) {
@@ -7383,11 +8492,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             finalizer = parseBlock();
         }
 
-        if (handlers.length === 0 && !finalizer) {
+        if (!handler && !finalizer) {
             throwError(Messages.NoCatchOrFinally);
         }
 
-        return node.finishTryStatement(block, [], handlers, finalizer);
+        return node.finishTryStatement(block, handler, finalizer);
     }
 
     // 12.15 The debugger statement
@@ -7416,7 +8525,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (type === Token.Punctuator && lookahead.value === '{') {
             return parseBlock();
         }
-
+        isAssignmentTarget = isBindingElement = true;
         node = new Node();
 
         if (type === Token.Punctuator) {
@@ -7488,21 +8597,21 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     // 13 Function Definition
 
     function parseFunctionSourceElements() {
-        var sourceElement, sourceElements = [], token, directive, firstRestricted,
+        var statement, body = [], token, directive, firstRestricted,
             oldLabelSet, oldInIteration, oldInSwitch, oldInFunctionBody, oldParenthesisCount,
             node = new Node();
 
         expect('{');
 
-        while (index < length) {
+        while (startIndex < length) {
             if (lookahead.type !== Token.StringLiteral) {
                 break;
             }
             token = lookahead;
 
-            sourceElement = parseSourceElement();
-            sourceElements.push(sourceElement);
-            if (sourceElement.expression.type !== Syntax.Literal) {
+            statement = parseStatementListItem();
+            body.push(statement);
+            if (statement.expression.type !== Syntax.Literal) {
                 // this is not directive
                 break;
             }
@@ -7531,15 +8640,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         state.inFunctionBody = true;
         state.parenthesizedCount = 0;
 
-        while (index < length) {
+        while (startIndex < length) {
             if (match('}')) {
                 break;
             }
-            sourceElement = parseSourceElement();
-            if (typeof sourceElement === 'undefined') {
-                break;
-            }
-            sourceElements.push(sourceElement);
+            body.push(parseStatementListItem());
         }
 
         expect('}');
@@ -7550,7 +8655,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         state.inFunctionBody = oldInFunctionBody;
         state.parenthesizedCount = oldParenthesisCount;
 
-        return node.finishBlockStatement(sourceElements);
+        return node.finishBlockStatement(body);
     }
 
     function validateParam(options, param, name) {
@@ -7583,11 +8688,20 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         var token, param, def;
 
         token = lookahead;
-        param = parseVariableIdentifier();
+        if (token.value === '...') {
+            param = parseRestElement();
+            validateParam(options, param.argument, param.argument.name);
+            options.params.push(param);
+            options.defaults.push(null);
+            return false;
+        }
+
+        param = parsePatternWithDefault();
         validateParam(options, token, token.value);
-        if (match('=')) {
-            lex();
-            def = parseAssignmentExpression();
+
+        if (param.type === Syntax.AssignmentPattern) {
+            def = param.right;
+            param = param.left;
             ++options.defaultCount;
         }
 
@@ -7611,7 +8725,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         if (!match(')')) {
             options.paramSet = {};
-            while (index < length) {
+            while (startIndex < length) {
                 if (!parseParam(options)) {
                     break;
                 }
@@ -7634,23 +8748,25 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         };
     }
 
-    function parseFunctionDeclaration() {
-        var id, params = [], defaults = [], body, token, stricted, tmp, firstRestricted, message, previousStrict, node = new Node();
+    function parseFunctionDeclaration(node, identifierIsOptional) {
+        var id = null, params = [], defaults = [], body, token, stricted, tmp, firstRestricted, message, previousStrict;
 
         expectKeyword('function');
-        token = lookahead;
-        id = parseVariableIdentifier();
-        if (strict) {
-            if (isRestrictedWord(token.value)) {
-                tolerateUnexpectedToken(token, Messages.StrictFunctionName);
-            }
-        } else {
-            if (isRestrictedWord(token.value)) {
-                firstRestricted = token;
-                message = Messages.StrictFunctionName;
-            } else if (isStrictModeReservedWord(token.value)) {
-                firstRestricted = token;
-                message = Messages.StrictReservedWord;
+        if (!identifierIsOptional || !match('(')) {
+            token = lookahead;
+            id = parseVariableIdentifier();
+            if (strict) {
+                if (isRestrictedWord(token.value)) {
+                    tolerateUnexpectedToken(token, Messages.StrictFunctionName);
+                }
+            } else {
+                if (isRestrictedWord(token.value)) {
+                    firstRestricted = token;
+                    message = Messages.StrictFunctionName;
+                } else if (isStrictModeReservedWord(token.value)) {
+                    firstRestricted = token;
+                    message = Messages.StrictReservedWord;
+                }
             }
         }
 
@@ -7722,38 +8838,369 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishFunctionExpression(id, params, defaults, body);
     }
 
-    // 14 Program
 
-    function parseSourceElement() {
+    function parseClassBody() {
+        var classBody, token, isStatic, hasConstructor = false, body, method, computed, key;
+
+        classBody = new Node();
+
+        expect('{');
+        body = [];
+        while (!match('}')) {
+            if (match(';')) {
+                lex();
+            } else {
+                method = new Node();
+                token = lookahead;
+                isStatic = false;
+                computed = match('[');
+                key = parseObjectPropertyKey();
+                if (key.name === 'static' && lookaheadPropertyName()) {
+                    token = lookahead;
+                    isStatic = true;
+                    computed = match('[');
+                    key = parseObjectPropertyKey();
+                }
+                method = tryParseMethodDefinition(token, key, computed, method);
+                if (method) {
+                    method['static'] = isStatic;
+                    if (method.kind === 'init') {
+                        method.kind = 'method';
+                    }
+                    if (!isStatic) {
+                        if (!method.computed && (method.key.name || method.key.value.toString()) === 'constructor') {
+                            if (method.kind !== 'method' || !method.method || method.value.generator) {
+                                throwUnexpectedToken(token, Messages.ConstructorSpecialMethod);
+                            }
+                            if (hasConstructor) {
+                                throwUnexpectedToken(token, Messages.DuplicateConstructor);
+                            } else {
+                                hasConstructor = true;
+                            }
+                            method.kind = 'constructor';
+                        }
+                    } else {
+                        if (!method.computed && (method.key.name || method.key.value.toString()) === 'prototype') {
+                            throwUnexpectedToken(token, Messages.StaticPrototype);
+                        }
+                    }
+                    method.type = Syntax.MethodDefinition;
+                    delete method.method;
+                    delete method.shorthand;
+                    body.push(method);
+                } else {
+                    throwUnexpectedToken(lookahead);
+                }
+            }
+        }
+        lex();
+        return classBody.finishClassBody(body);
+    }
+
+    function parseClassDeclaration(identifierIsOptional) {
+        var id = null, superClass = null, classNode = new Node(), classBody, previousStrict = strict;
+        strict = true;
+
+        expectKeyword('class');
+
+        if (!identifierIsOptional || lookahead.type === Token.Identifier) {
+            id = parseVariableIdentifier();
+        }
+
+        if (matchKeyword('extends')) {
+            lex();
+            superClass = isolateCoverGrammar(parseLeftHandSideExpressionAllowCall);
+        }
+        classBody = parseClassBody();
+        strict = previousStrict;
+
+        return classNode.finishClassDeclaration(id, superClass, classBody);
+    }
+
+    function parseClassExpression() {
+        var id = null, superClass = null, classNode = new Node(), classBody, previousStrict = strict;
+        strict = true;
+
+        expectKeyword('class');
+
+        if (lookahead.type === Token.Identifier) {
+            id = parseVariableIdentifier();
+        }
+
+        if (matchKeyword('extends')) {
+            lex();
+            superClass = isolateCoverGrammar(parseLeftHandSideExpressionAllowCall);
+        }
+        classBody = parseClassBody();
+        strict = previousStrict;
+
+        return classNode.finishClassExpression(id, superClass, classBody);
+    }
+
+    // Modules grammar from:
+    // people.mozilla.org/~jorendorff/es6-draft.html
+
+    function parseModuleSpecifier() {
+        var node = new Node();
+
+        if (lookahead.type !== Token.StringLiteral) {
+            throwError(Messages.InvalidModuleSpecifier);
+        }
+        return node.finishLiteral(lex());
+    }
+
+    function parseExportSpecifier() {
+        var exported, local, node = new Node(), def;
+        if (matchKeyword('default')) {
+            // export {default} from 'something';
+            def = new Node();
+            lex();
+            local = def.finishIdentifier('default');
+        } else {
+            local = parseVariableIdentifier();
+        }
+        if (matchContextualKeyword('as')) {
+            lex();
+            exported = parseNonComputedProperty();
+        }
+        return node.finishExportSpecifier(local, exported);
+    }
+
+    function parseExportNamedDeclaration(node) {
+        var declaration = null,
+            isExportFromIdentifier,
+            src = null, specifiers = [];
+
+        // non-default export
         if (lookahead.type === Token.Keyword) {
+            // covers:
+            // export var f = 1;
             switch (lookahead.value) {
-            case 'const':
-            case 'let':
-                return parseConstLetDeclaration(lookahead.value);
-            case 'function':
-                return parseFunctionDeclaration();
-            default:
-                return parseStatement();
+                case 'let':
+                case 'const':
+                case 'var':
+                case 'class':
+                case 'function':
+                    declaration = parseStatementListItem();
+                    return node.finishExportNamedDeclaration(declaration, specifiers, null);
             }
         }
 
-        if (lookahead.type !== Token.EOF) {
-            return parseStatement();
+        expect('{');
+        if (!match('}')) {
+            do {
+                isExportFromIdentifier = isExportFromIdentifier || matchKeyword('default');
+                specifiers.push(parseExportSpecifier());
+            } while (match(',') && lex());
         }
+        expect('}');
+
+        if (matchContextualKeyword('from')) {
+            // covering:
+            // export {default} from 'foo';
+            // export {foo} from 'foo';
+            lex();
+            src = parseModuleSpecifier();
+            consumeSemicolon();
+        } else if (isExportFromIdentifier) {
+            // covering:
+            // export {default}; // missing fromClause
+            throwError(lookahead.value ?
+                    Messages.UnexpectedToken : Messages.MissingFromClause, lookahead.value);
+        } else {
+            // cover
+            // export {foo};
+            consumeSemicolon();
+        }
+        return node.finishExportNamedDeclaration(declaration, specifiers, src);
     }
 
-    function parseSourceElements() {
-        var sourceElement, sourceElements = [], token, directive, firstRestricted;
+    function parseExportDefaultDeclaration(node) {
+        var declaration = null,
+            expression = null;
 
-        while (index < length) {
+        // covers:
+        // export default ...
+        expectKeyword('default');
+
+        if (matchKeyword('function')) {
+            // covers:
+            // export default function foo () {}
+            // export default function () {}
+            declaration = parseFunctionDeclaration(new Node(), true);
+            return node.finishExportDefaultDeclaration(declaration);
+        }
+        if (matchKeyword('class')) {
+            declaration = parseClassDeclaration(true);
+            return node.finishExportDefaultDeclaration(declaration);
+        }
+
+        if (matchContextualKeyword('from')) {
+            throwError(Messages.UnexpectedToken, lookahead.value);
+        }
+
+        // covers:
+        // export default {};
+        // export default [];
+        // export default (1 + 2);
+        if (match('{')) {
+            expression = parseObjectInitialiser();
+        } else if (match('[')) {
+            expression = parseArrayInitialiser();
+        } else {
+            expression = parseAssignmentExpression();
+        }
+        consumeSemicolon();
+        return node.finishExportDefaultDeclaration(expression);
+    }
+
+    function parseExportAllDeclaration(node) {
+        var src;
+
+        // covers:
+        // export * from 'foo';
+        expect('*');
+        if (!matchContextualKeyword('from')) {
+            throwError(lookahead.value ?
+                    Messages.UnexpectedToken : Messages.MissingFromClause, lookahead.value);
+        }
+        lex();
+        src = parseModuleSpecifier();
+        consumeSemicolon();
+
+        return node.finishExportAllDeclaration(src);
+    }
+
+    function parseExportDeclaration() {
+        var node = new Node();
+        if (state.inFunctionBody) {
+            throwError(Messages.IllegalExportDeclaration);
+        }
+
+        expectKeyword('export');
+
+        if (matchKeyword('default')) {
+            return parseExportDefaultDeclaration(node);
+        }
+        if (match('*')) {
+            return parseExportAllDeclaration(node);
+        }
+        return parseExportNamedDeclaration(node);
+    }
+
+    function parseImportSpecifier() {
+        // import {<foo as bar>} ...;
+        var local, imported, node = new Node();
+
+        imported = parseNonComputedProperty();
+        if (matchContextualKeyword('as')) {
+            lex();
+            local = parseVariableIdentifier();
+        }
+
+        return node.finishImportSpecifier(local, imported);
+    }
+
+    function parseNamedImports() {
+        var specifiers = [];
+        // {foo, bar as bas}
+        expect('{');
+        if (!match('}')) {
+            do {
+                specifiers.push(parseImportSpecifier());
+            } while (match(',') && lex());
+        }
+        expect('}');
+        return specifiers;
+    }
+
+    function parseImportDefaultSpecifier() {
+        // import <foo> ...;
+        var local, node = new Node();
+
+        local = parseNonComputedProperty();
+
+        return node.finishImportDefaultSpecifier(local);
+    }
+
+    function parseImportNamespaceSpecifier() {
+        // import <* as foo> ...;
+        var local, node = new Node();
+
+        expect('*');
+        if (!matchContextualKeyword('as')) {
+            throwError(Messages.NoAsAfterImportNamespace);
+        }
+        lex();
+        local = parseNonComputedProperty();
+
+        return node.finishImportNamespaceSpecifier(local);
+    }
+
+    function parseImportDeclaration() {
+        var specifiers, src, node = new Node();
+
+        if (state.inFunctionBody) {
+            throwError(Messages.IllegalImportDeclaration);
+        }
+
+        expectKeyword('import');
+        specifiers = [];
+
+        if (lookahead.type === Token.StringLiteral) {
+            // covers:
+            // import 'foo';
+            src = parseModuleSpecifier();
+            consumeSemicolon();
+            return node.finishImportDeclaration(specifiers, src);
+        }
+
+        if (!matchKeyword('default') && isIdentifierName(lookahead)) {
+            // covers:
+            // import foo
+            // import foo, ...
+            specifiers.push(parseImportDefaultSpecifier());
+            if (match(',')) {
+                lex();
+            }
+        }
+        if (match('*')) {
+            // covers:
+            // import foo, * as foo
+            // import * as foo
+            specifiers.push(parseImportNamespaceSpecifier());
+        } else if (match('{')) {
+            // covers:
+            // import foo, {bar}
+            // import {bar}
+            specifiers = specifiers.concat(parseNamedImports());
+        }
+
+        if (!matchContextualKeyword('from')) {
+            throwError(lookahead.value ?
+                    Messages.UnexpectedToken : Messages.MissingFromClause, lookahead.value);
+        }
+        lex();
+        src = parseModuleSpecifier();
+        consumeSemicolon();
+
+        return node.finishImportDeclaration(specifiers, src);
+    }
+
+    // 14 Program
+
+    function parseScriptBody() {
+        var statement, body = [], token, directive, firstRestricted;
+
+        while (startIndex < length) {
             token = lookahead;
             if (token.type !== Token.StringLiteral) {
                 break;
             }
 
-            sourceElement = parseSourceElement();
-            sourceElements.push(sourceElement);
-            if (sourceElement.expression.type !== Syntax.Literal) {
+            statement = parseStatementListItem();
+            body.push(statement);
+            if (statement.expression.type !== Syntax.Literal) {
                 // this is not directive
                 break;
             }
@@ -7770,26 +9217,24 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
         }
 
-        while (index < length) {
-            sourceElement = parseSourceElement();
+        while (startIndex < length) {
+            statement = parseStatementListItem();
             /* istanbul ignore if */
-            if (typeof sourceElement === 'undefined') {
+            if (typeof statement === 'undefined') {
                 break;
             }
-            sourceElements.push(sourceElement);
+            body.push(statement);
         }
-        return sourceElements;
+        return body;
     }
 
     function parseProgram() {
         var body, node;
 
-        skipComment();
         peek();
         node = new Node();
-        strict = false;
 
-        body = parseSourceElements();
+        body = parseScriptBody();
         return node.finishProgram(body);
     }
 
@@ -7833,6 +9278,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         index = 0;
         lineNumber = (source.length > 0) ? 1 : 0;
         lineStart = 0;
+        startIndex = index;
+        startLineNumber = lineNumber;
+        startLineStart = lineStart;
         length = source.length;
         lookahead = null;
         state = {
@@ -7841,7 +9289,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             inFunctionBody: false,
             inIteration: false,
             inSwitch: false,
-            lastCommentStart: -1
+            lastCommentStart: -1,
+            curlyStack: []
         };
 
         extra = {};
@@ -7879,7 +9328,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     lex();
                 } catch (lexError) {
                     if (extra.errors) {
-                        extra.errors.push(lexError);
+                        recordError(lexError);
                         // We have to break on the first error
                         // to avoid infinite loops.
                         break;
@@ -7917,17 +9366,22 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         index = 0;
         lineNumber = (source.length > 0) ? 1 : 0;
         lineStart = 0;
+        startIndex = index;
+        startLineNumber = lineNumber;
+        startLineStart = lineStart;
         length = source.length;
         lookahead = null;
         state = {
             allowIn: true,
             labelSet: {},
-            parenthesisCount: 0,
             inFunctionBody: false,
             inIteration: false,
             inSwitch: false,
-            lastCommentStart: -1
+            lastCommentStart: -1,
+            curlyStack: []
         };
+        sourceType = 'script';
+        strict = false;
 
         extra = {};
         if (typeof options !== 'undefined') {
@@ -7955,6 +9409,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 extra.trailingComments = [];
                 extra.leadingComments = [];
             }
+            if (options.sourceType === 'module') {
+                // very restrictive condition for now
+                sourceType = options.sourceType;
+                strict = true;
+            }
         }
 
         try {
@@ -7979,14 +9438,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     // Sync with *.json manifests.
-    exports.version = '2.0.0';
+    exports.version = '2.2.0';
 
     exports.tokenize = tokenize;
 
     exports.parse = parse;
 
     // Deep copy.
-   /* istanbul ignore next */
+    /* istanbul ignore next */
     exports.Syntax = (function () {
         var name, types = {};
 
