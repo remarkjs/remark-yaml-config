@@ -80,7 +80,7 @@ describe('mdast-yaml()', function () {
         ].join('\n')) === [
             '---',
             'mdast:',
-            '  bullet: "*"',
+            '  bullet: \'*\'',
             '---',
             '',
             '*   Foo',
@@ -99,7 +99,7 @@ describe('mdast-yaml()', function () {
                 '-   Foo',
                 ''
             ].join('\n'));
-        }, /Error: 1:1: Invalid value `\?` for `options\.bullet`/);
+        }, /Error: 1:1: Invalid value `\?` for setting `options\.bullet`/);
     });
 
     // it('should support empty yaml', function () {

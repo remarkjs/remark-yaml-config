@@ -71,6 +71,7 @@ function attacher(mdast, options) {
 module.exports = attacher;
 
 },{"mdast-yaml":2}],2:[function(require,module,exports){
+(function (global){
 'use strict';
 
 /*
@@ -78,10 +79,80 @@ module.exports = attacher;
  */
 
 var jsYAML = null;
+var fs = {};
+var path = {};
+var proc = {};
 
 try {
     jsYAML = require('js-yaml');
-} catch (exception) {}
+} catch (exception) {/* empty */}
+
+try {
+    fs = require('fs');
+} catch (exception) {/* empty */}
+
+try {
+    path = require('path');
+} catch (exception) {/* empty */}
+
+/*
+ * Hide process use from browserify/component/duo.
+ */
+
+/* istanbul ignore else */
+if (typeof global !== 'undefined' && global.process) {
+    proc = global.process;
+}
+
+/*
+ * Methods.
+ */
+
+var exists = fs.existsSync;
+var resolve = path.resolve;
+
+/*
+ * Constants.
+ */
+
+var JS_YAML = 'js-yaml';
+
+/**
+ * Find a library.
+ *
+ * @param {string} pathlike
+ * @return {Object}
+ */
+function loadLibrary(pathlike) {
+    var cwd;
+    var local;
+    var npm;
+    var plugin;
+
+    if (pathlike === JS_YAML && jsYAML) {
+        return jsYAML;
+    }
+
+    cwd = proc.cwd && proc.cwd();
+
+    /* istanbul ignore if */
+    if (!cwd) {
+        throw new Error('Cannot lazy load library when not in node');
+    }
+
+    local = resolve(cwd, pathlike);
+    npm = resolve(cwd, 'node_modules', pathlike);
+
+    if (exists(local) || exists(local + '.js')) {
+        plugin = local;
+    } else if (exists(npm)) {
+        plugin = npm;
+    } else {
+        plugin = pathlike;
+    }
+
+    return require(plugin);
+}
 
 /**
  * No-operation.
@@ -180,6 +251,10 @@ function attacher(mdast, options) {
     var stringifiers = mdast.Compiler.prototype;
     var settings = options || {};
 
+    if (typeof settings.library === 'string') {
+        settings.library = loadLibrary(settings.library);
+    }
+
     tokenizers.yamlFrontMatter = parse(tokenizers.yamlFrontMatter, settings);
     stringifiers.yaml = stringify(stringifiers.yaml, settings);
 }
@@ -190,7 +265,8 @@ function attacher(mdast, options) {
 
 module.exports = attacher;
 
-},{"js-yaml":3}],3:[function(require,module,exports){
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"fs":undefined,"js-yaml":3,"path":undefined}],3:[function(require,module,exports){
 'use strict';
 
 

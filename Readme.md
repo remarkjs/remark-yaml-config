@@ -41,8 +41,11 @@ UMD: globals, AMD, and CommonJS ([uncompressed](mdast-yaml-config.js) and [compr
 ## Table of Contents
 
 *   [Usage](#usage)
+
 *   [API](#api)
+
     *   [mdast.use(yamlConfig, options)](#mdastuseyamlconfig-options)
+
 *   [License](#license)
 
 ## Usage
@@ -79,6 +82,7 @@ mdast:
 ---
 
 1.  Commonmark list (this is a parse setting)
+
 *   Hello (this is a stringification setting)
 ```
 
