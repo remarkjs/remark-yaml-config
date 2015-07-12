@@ -7,10 +7,3 @@ node_js:
 - iojs
 after_script: npm install coveralls@2.10.0 && cat ./coverage/lcov.info | coveralls
 sudo: false
-deploy:
-  provider: npm
-  email: tituswormer@gmail.com
-  api_key:
-    secure: TrRr9P6Syse7MeBDGi+BTwP33K+uJ53mg6fBbj0hOV27LGLpR7wI+UnbeG8nphSMhGcDoNfiwr8HxgoBbzmxjPfwGhWwul1dSgCKG70v2I0bdPOkup916ABnsjdVZMtqjNT0i1nlQpz17hIerPweO1lRu8JhMLSVqUmtVMJ9zL8=
-  on:
-    repo: wooorm/mdast-yaml-config
