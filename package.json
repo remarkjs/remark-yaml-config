@@ -48,7 +48,6 @@
     "bundle": "browserify --no-builtins index.js -s mdastYAMLConfig > mdast-yaml-config.js",
     "postbundle": "esmangle mdast-yaml-config.js > mdast-yaml-config.min.js",
     "build-md": "mdast . --output --quiet",
-    "build": "npm run build-md && npm run bundle",
-    "prepublish": "npm run build"
+    "build": "npm run build-md && npm run bundle"
   }
 }
