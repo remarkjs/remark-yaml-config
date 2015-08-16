@@ -1,7 +1,7 @@
 {
   "name": "mdast-yaml-config",
   "main": "mdast-yaml-config.js",
-  "description": "Set mdast options with YAML during runtime",
+  "description": "Configure mdast with YAML front-matter",
   "license": "MIT",
   "keywords": [
     "yaml",
