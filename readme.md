@@ -1,4 +1,4 @@
-# mdast-yaml-config [![Build Status](https://img.shields.io/travis/wooorm/mdast-yaml-config.svg?style=flat)](https://travis-ci.org/wooorm/mdast-yaml-config) [![Coverage Status](https://img.shields.io/coveralls/wooorm/mdast-yaml-config.svg?style=flat)](https://coveralls.io/r/wooorm/mdast-yaml-config?branch=master)
+# mdast-yaml-config [![Build Status](https://img.shields.io/travis/wooorm/mdast-yaml-config.svg)](https://travis-ci.org/wooorm/mdast-yaml-config) [![Coverage Status](https://img.shields.io/codecov/c/github/wooorm/mdast-yaml-config.svg)](https://codecov.io/github/wooorm/mdast-yaml-config)
 
 Configure **mdast** with YAML front-matter.
 
