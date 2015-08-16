@@ -11,24 +11,21 @@
     "mdast"
   ],
   "dependencies": {
-    "mdast-yaml": "^0.3.0"
+    "mdast-yaml": "^1.0.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/wooorm/mdast-yaml-config.git"
-  },
+  "repository": "wooorm/mdast-yaml-config",
   "author": "Titus Wormer <tituswormer@gmail.com>",
   "files": [
     "index.js"
   ],
   "devDependencies": {
-    "browserify": "^10.0.0",
-    "eslint": "^0.24.0",
+    "browserify": "^11.0.0",
+    "eslint": "^1.0.0",
     "esmangle": "^1.0.0",
     "istanbul": "^0.3.0",
-    "jscs": "^1.0.0",
+    "jscs": "^2.0.0",
     "jscs-jsdoc": "^1.0.0",
-    "mdast": "^0.26.0",
+    "mdast": "^1.0.0",
     "mdast-github": "^0.3.0",
     "mdast-lint": "^0.4.0",
     "mdast-toc": "^0.5.0",
@@ -47,7 +44,7 @@
     "make": "npm run lint && npm run test-coverage",
     "bundle": "browserify --no-builtins index.js -s mdastYAMLConfig > mdast-yaml-config.js",
     "postbundle": "esmangle mdast-yaml-config.js > mdast-yaml-config.min.js",
-    "build-md": "mdast . --output --quiet",
+    "build-md": "mdast . --quiet",
     "build": "npm run build-md && npm run bundle"
   }
 }

@@ -14,8 +14,8 @@ function noop() {}
 /**
  * Wrapper factory.
  *
- * @param {function(Node, Parser|Compiler)} method
- * @return {function(Node, Parser|Compiler)}
+ * @param {Function} method - Type to wrap.
+ * @return {Function}
  */
 function factory(method) {
     var callback = method || noop;
@@ -38,8 +38,8 @@ function factory(method) {
 /**
  * Modify mdast to parse/stringify YAML.
  *
- * @param {MDAST} mdast
- * @param {Object?} options
+ * @param {MDAST} mdast - Instance.
+ * @param {Object?} [options] - Plug-in configuration.
  */
 function attacher(mdast, options) {
     var settings = options || {};

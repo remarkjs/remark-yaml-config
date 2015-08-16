@@ -2,5 +2,6 @@ build/
 components/
 coverage/
 build.js
+example.js
 mdast-yaml-config.js
 mdast-yaml-config.min.js

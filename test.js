@@ -10,11 +10,18 @@ var assert = require('assert');
 var mdast = require('mdast');
 var yamlConfig = require('./');
 
+/*
+ * Methods.
+ */
+
+var equal = assert.strictEqual;
+var throws = assert.throws;
+
 /**
  * Shortcut to process.
  *
- * @param {string} value
- * @param {Object?} options
+ * @param {string} value - Markdown.
+ * @param {Object?} [options] - Plug-in configuration.
  * @return {string}
  */
 function yaml(value, options) {
@@ -29,18 +36,18 @@ function yaml(value, options) {
 
 describe('mdast-yaml()', function () {
     it('should not fail without yaml', function () {
-        assert(yaml('# Foo bar\n') === '# Foo bar\n');
+        equal(yaml('# Foo bar\n'), '# Foo bar\n');
     });
 
     it('should parse and stringify yaml', function () {
-        assert(yaml([
+        equal(yaml([
             '---',
             'hello: "world"',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n')) === [
+        ].join('\n')), [
             '---',
             'hello: world',
             '---',
@@ -51,7 +58,7 @@ describe('mdast-yaml()', function () {
     });
 
     it('should set parse options', function () {
-        assert(yaml([
+        equal(yaml([
             '---',
             'mdast:',
             '  commonmark: true',
@@ -59,7 +66,7 @@ describe('mdast-yaml()', function () {
             '',
             '1)  Foo',
             ''
-        ].join('\n')) === [
+        ].join('\n')), [
             '---',
             'mdast:',
             '  commonmark: true',
@@ -71,7 +78,7 @@ describe('mdast-yaml()', function () {
     });
 
     it('should set stringification options', function () {
-        assert(yaml([
+        equal(yaml([
             '---',
             'mdast:',
             '  bullet: "*"',
@@ -79,7 +86,7 @@ describe('mdast-yaml()', function () {
             '',
             '-   Foo',
             ''
-        ].join('\n')) === [
+        ].join('\n')), [
             '---',
             'mdast:',
             '  bullet: \'*\'',
@@ -91,7 +98,7 @@ describe('mdast-yaml()', function () {
     });
 
     it('should throw exceptions with location information', function () {
-        assert.throws(function () {
+        throws(function () {
             yaml([
                 '---',
                 'mdast:',
