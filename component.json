@@ -1,6 +1,6 @@
 {
   "name": "mdast-yaml-config",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "Configure mdast with YAML front-matter",
   "license": "MIT",
   "keywords": [
