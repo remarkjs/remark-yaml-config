@@ -5,6 +5,11 @@ mdast:
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+2.0.0-alpha.1 / 2015-12-14
+==========================
+
+*   Update dependencies for changes in mdast ([c119cf3](https://github.com/wooorm/mdast-yaml-config/commit/c119cf3))
+
 1.0.0 / 2015-08-16
 ==================
 
