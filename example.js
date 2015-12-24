@@ -1,9 +1,9 @@
 var yamlConfig = require('./index.js');
-var mdast = require('mdast').use(yamlConfig);
+var remark = require('remark').use(yamlConfig);
 
 var input = [
     '---',
-    'mdast:',
+    'remark:',
     '  commonmark: true',
     '  bullet: "*"',
     '---',
@@ -14,9 +14,9 @@ var input = [
     ''
 ].join('\n');
 
-var tree = mdast.parse(input);
+var tree = remark.parse(input);
 
 // Stringifying the document yields:
-var doc = mdast.stringify(tree);
+var doc = remark.stringify(tree);
 
 console.log('markdown', doc);

@@ -5,8 +5,8 @@
     "coverage/",
     "node_modules/",
     "build.js",
-    "mdast-yaml-config.js",
-    "mdast-yaml-config.min.js"
+    "remark-yaml-config.js",
+    "remark-yaml-config.min.js"
   ],
   "jsDoc": {
     "checkAnnotations": "jsdoc3",

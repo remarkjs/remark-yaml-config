@@ -1,40 +1,40 @@
-# mdast-yaml-config [![Build Status](https://img.shields.io/travis/wooorm/mdast-yaml-config.svg)](https://travis-ci.org/wooorm/mdast-yaml-config) [![Coverage Status](https://img.shields.io/codecov/c/github/wooorm/mdast-yaml-config.svg)](https://codecov.io/github/wooorm/mdast-yaml-config)
+# remark-yaml-config [![Build Status](https://img.shields.io/travis/wooorm/remark-yaml-config.svg)](https://travis-ci.org/wooorm/remark-yaml-config) [![Coverage Status](https://img.shields.io/codecov/c/github/wooorm/remark-yaml-config.svg)](https://codecov.io/github/wooorm/remark-yaml-config)
 
-Configure **mdast** with YAML front-matter.
+Configure **remark** with YAML front-matter.
 
 ## Installation
 
 [npm](https://docs.npmjs.com/cli/install)
 
 ```bash
-npm install mdast-yaml-config
+npm install remark-yaml-config
 ```
 
 [Component.js](https://github.com/componentjs/component)
 
 ```bash
-component install wooorm/mdast-yaml-config
+component install wooorm/remark-yaml-config
 ```
 
 [Bower](http://bower.io/#install-packages)
 
 ```bash
-bower install mdast-yaml-config
+bower install remark-yaml-config
 ```
 
 [Duo](http://duojs.org/#getting-started)
 
 ```javascript
-var yamlConfig = require('wooorm/mdast-yaml-config');
+var yamlConfig = require('wooorm/remark-yaml-config');
 ```
 
-UMD: globals, AMD, and CommonJS ([uncompressed](mdast-yaml-config.js) and [compressed](mdast-yaml-config.min.js)):
+UMD: globals, AMD, and CommonJS ([uncompressed](remark-yaml-config.js) and [compressed](remark-yaml-config.min.js)):
 
 ```html
-<script src="path/to/mdast.js"></script>
-<script src="path/to/mdast-yaml-config.js"></script>
+<script src="path/to/remark.js"></script>
+<script src="path/to/remark-yaml-config.js"></script>
 <script>
-  mdast.use(mdastYAMLConfig);
+  remark.use(remarkYAMLConfig);
 </script>
 ```
 
@@ -44,18 +44,18 @@ UMD: globals, AMD, and CommonJS ([uncompressed](mdast-yaml-config.js) and [compr
 
 *   [API](#api)
 
-    *   [mdast.use(yamlConfig, options)](#mdastuseyamlconfig-options)
+    *   [remark.use(yamlConfig, options)](#remarkuseyamlconfig-options)
 
 *   [License](#license)
 
 ## Usage
 
 ```javascript
-var yamlConfig = require('mdast-yaml-config');
-var mdast = require('mdast').use(yamlConfig);
+var yamlConfig = require('remark-yaml-config');
+var remark = require('remark').use(yamlConfig);
 var input = [
     '---',
-    'mdast:',
+    'remark:',
     '  commonmark: true',
     '  bullet: "*"',
     '---',
@@ -65,18 +65,18 @@ var input = [
     '- Hello (this is a stringification setting)',
     ''
 ].join('\n');
-var tree = mdast.parse(input);
+var tree = remark.parse(input);
 ```
 
 Stringifying the document yields:
 
 ```javascript
-var doc = mdast.stringify(tree);
+var doc = remark.stringify(tree);
 ```
 
 ```markdown
 ---
-mdast:
+remark:
   commonmark: true
   bullet: '*'
 ---
@@ -88,23 +88,23 @@ mdast:
 
 ## API
 
-### [mdast](https://github.com/wooorm/mdast#api).[use](https://github.com/wooorm/mdast#mdastuseplugin-options)(yamlConfig, options)
+### [remark](https://github.com/wooorm/remark#api).[use](https://github.com/wooorm/remark#remarkuseplugin-options)(yamlConfig, options)
 
-Passes the [configuration](https://github.com/wooorm/mdast/blob/master/doc/Options.md)
-found in YAML front-matter (under the `mdast` key) to **mdast**.
+Passes the [configuration](https://github.com/wooorm/remark/blob/master/doc/Options.md)
+found in YAML front-matter (under the `remark` key) to **remark**.
 
-This is especially useful if you’re using **mdast**’s [CLI](https://github.com/wooorm/mdast#cli),
+This is especially useful if you’re using **remark**’s [CLI](https://github.com/wooorm/remark#cli),
 which allows multiple documents to be processed in one go, but you’d like
 certain files to have different formatting.
 
 **Signatures**
 
-*   `mdast = mdast.use(yamlConfig, options?)`.
+*   `remark = remark.use(yamlConfig, options?)`.
 
 **Parameters**
 
 *   `yamlConfig` — This plugin;
-*   `options` (`Object?`) — Passed to [mdast-yaml](https://github.com/wooorm/mdast-yaml#mdastuseyaml-options).
+*   `options` (`Object?`) — Passed to [remark-yaml](https://github.com/wooorm/remark-yaml#remarkuseyaml-options).
 
 ## License
 

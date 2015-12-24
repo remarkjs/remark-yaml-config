@@ -2,8 +2,8 @@
  * @author Titus Wormer
  * @copyright 2015 Titus Wormer
  * @license MIT
- * @module mdast:yaml-config
- * @fileoverview Configure mdast with YAML front-matter.
+ * @module remark:yaml-config
+ * @fileoverview Configure remark with YAML front-matter.
  */
 
 'use strict';
@@ -12,7 +12,7 @@
  * Dependencies.
  */
 
-var yaml = require('mdast-yaml');
+var yaml = require('remark-yaml');
 
 /**
  * No-operation.
@@ -29,7 +29,7 @@ function factory(method) {
     var callback = method || noop;
 
     return function (node, instance) {
-        var config = node.yaml && node.yaml.mdast;
+        var config = node.yaml && node.yaml.remark;
 
         if (config) {
             try {
@@ -44,18 +44,18 @@ function factory(method) {
 }
 
 /**
- * Modify mdast to parse/stringify YAML.
+ * Modify remark to parse/stringify YAML.
  *
- * @param {MDAST} mdast - Instance.
+ * @param {Remark} remark - Instance.
  * @param {Object?} [options] - Plug-in configuration.
  */
-function attacher(mdast, options) {
+function attacher(remark, options) {
     var settings = options || {};
 
     settings.onparse = factory(settings.onparse);
     settings.onstringify = factory(settings.onstringify);
 
-    mdast.use(yaml, settings);
+    remark.use(yaml, settings);
 }
 
 /*

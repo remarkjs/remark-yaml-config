@@ -34,7 +34,7 @@ function yaml(value, options) {
  * Tests.
  */
 
-describe('mdast-yaml()', function () {
+describe('remark-yaml()', function () {
     it('should not fail without yaml', function () {
         equal(yaml('# Foo bar\n'), '# Foo bar\n');
     });
@@ -60,7 +60,7 @@ describe('mdast-yaml()', function () {
     it('should set parse options', function () {
         equal(yaml([
             '---',
-            'mdast:',
+            'remark:',
             '  commonmark: true',
             '---',
             '',
@@ -68,7 +68,7 @@ describe('mdast-yaml()', function () {
             ''
         ].join('\n')), [
             '---',
-            'mdast:',
+            'remark:',
             '  commonmark: true',
             '---',
             '',
@@ -80,7 +80,7 @@ describe('mdast-yaml()', function () {
     it('should set stringification options', function () {
         equal(yaml([
             '---',
-            'mdast:',
+            'remark:',
             '  bullet: "*"',
             '---',
             '',
@@ -88,7 +88,7 @@ describe('mdast-yaml()', function () {
             ''
         ].join('\n')), [
             '---',
-            'mdast:',
+            'remark:',
             '  bullet: \'*\'',
             '---',
             '',
@@ -101,7 +101,7 @@ describe('mdast-yaml()', function () {
         throws(function () {
             yaml([
                 '---',
-                'mdast:',
+                'remark:',
                 '  bullet: "?"',
                 '---',
                 '',

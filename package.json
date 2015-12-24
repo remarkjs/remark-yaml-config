@@ -1,19 +1,19 @@
 {
-  "name": "mdast-yaml-config",
+  "name": "remark-yaml-config",
   "version": "1.0.0",
-  "description": "Configure mdast with YAML front-matter",
+  "description": "Configure remark with YAML front-matter",
   "license": "MIT",
   "keywords": [
     "yaml",
     "options",
     "config",
     "settings",
-    "mdast"
+    "remark"
   ],
   "dependencies": {
-    "mdast-yaml": "^2.0.0-alpha.1"
+    "remark-yaml": "^2.0.0"
   },
-  "repository": "wooorm/mdast-yaml-config",
+  "repository": "wooorm/remark-yaml-config",
   "author": "Titus Wormer <tituswormer@gmail.com>",
   "files": [
     "index.js"
@@ -25,11 +25,11 @@
     "istanbul": "^0.3.0",
     "jscs": "^2.0.0",
     "jscs-jsdoc": "^1.0.0",
-    "mdast": "^3.0.0-alpha.3",
+    "mdast": "^3.0.0-alpha.5",
     "mdast-github": "^2.0.0-alpha.1",
     "mdast-lint": "^2.0.0-alpha.1",
     "mdast-toc": "^1.0.0",
-    "mdast-usage": "^0.3.0",
+    "mdast-usage": "^2.0.0-alpha.1",
     "mocha": "^2.0.0"
   },
   "scripts": {
@@ -41,8 +41,8 @@
     "lint-style": "jscs --reporter inline .",
     "lint": "npm run lint-api && npm run lint-style",
     "make": "npm run lint && npm run test-coverage",
-    "bundle": "browserify --no-builtins index.js -s mdastYAMLConfig > mdast-yaml-config.js",
-    "postbundle": "esmangle mdast-yaml-config.js > mdast-yaml-config.min.js",
+    "bundle": "browserify --no-builtins index.js -s remarkYAMLConfig > remark-yaml-config.js",
+    "postbundle": "esmangle remark-yaml-config.js > remark-yaml-config.min.js",
     "build-md": "mdast . --quiet",
     "build": "npm run build-md && npm run bundle"
   }

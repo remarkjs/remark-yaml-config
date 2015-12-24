@@ -1,20 +1,20 @@
 {
-  "name": "mdast-yaml-config",
+  "name": "remark-yaml-config",
   "version": "1.0.0",
-  "description": "Configure mdast with YAML front-matter",
+  "description": "Configure remark with YAML front-matter",
   "license": "MIT",
   "keywords": [
     "yaml",
     "options",
     "config",
     "settings",
-    "mdast"
+    "remark"
   ],
   "dependencies": {
-    "wooorm/mdast-yaml": "^1.0.0"
+    "wooorm/remark-yaml": "^2.0.0"
   },
-  "repository": "wooorm/mdast-yaml-config",
+  "repository": "wooorm/remark-yaml-config",
   "scripts": [
-    "mdast-yaml-config.js"
+    "remark-yaml-config.js"
   ]
 }
