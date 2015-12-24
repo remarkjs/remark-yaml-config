@@ -5,6 +5,14 @@ remark:
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+2.0.0 / 2015-12-24
+==================
+
+*   Rebuild distribution files ([aa12961](https://github.com/wooorm/remark-yaml-config/commit/aa12961))
+*   Add temporary warning to `readme.md` ([30a8bc1](https://github.com/wooorm/remark-yaml-config/commit/30a8bc1))
+*   Rename `mdast-github` > `remark-github` ([56feb49](https://github.com/wooorm/remark-yaml-config/commit/56feb49))
+*   Update dependencies for changes in mdast ([c119cf3](https://github.com/wooorm/remark-yaml-config/commit/c119cf3))
+
 1.0.0 / 2015-08-16
 ==================
 
