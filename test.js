@@ -1,21 +1,14 @@
 'use strict';
 
-/* eslint-env mocha */
+/* eslint-env node */
 
 /*
  * Dependencies.
  */
 
-var assert = require('assert');
+var test = require('tape');
 var remark = require('remark');
 var yamlConfig = require('./');
-
-/*
- * Methods.
- */
-
-var equal = assert.strictEqual;
-var throws = assert.throws;
 
 /**
  * Shortcut to process.
@@ -34,31 +27,35 @@ function yaml(value, options) {
  * Tests.
  */
 
-describe('remark-yaml()', function () {
-    it('should not fail without yaml', function () {
-        equal(yaml('# Foo bar\n'), '# Foo bar\n');
-    });
+test('remark-yaml()', function (t) {
+    t.equal(
+        yaml('# Foo bar\n'),
+        '# Foo bar\n',
+        'should not fail without yaml'
+    );
 
-    it('should parse and stringify yaml', function () {
-        equal(yaml([
+    t.equal(
+        yaml([
             '---',
             'hello: "world"',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n')), [
+        ].join('\n')),
+        [
             '---',
             'hello: world',
             '---',
             '',
             '# Foo bar',
             ''
-        ].join('\n'));
-    });
+        ].join('\n'),
+        'should parse and stringify yaml'
+    );
 
-    it('should set parse options', function () {
-        equal(yaml([
+    t.equal(
+        yaml([
             '---',
             'remark:',
             '  commonmark: true',
@@ -66,7 +63,8 @@ describe('remark-yaml()', function () {
             '',
             '1)  Foo',
             ''
-        ].join('\n')), [
+        ].join('\n')),
+        [
             '---',
             'remark:',
             '  commonmark: true',
@@ -74,11 +72,12 @@ describe('remark-yaml()', function () {
             '',
             '1.  Foo',
             ''
-        ].join('\n'));
-    });
+        ].join('\n'),
+        'should set parse options'
+    );
 
-    it('should set stringification options', function () {
-        equal(yaml([
+    t.equal(
+        yaml([
             '---',
             'remark:',
             '  bullet: "*"',
@@ -86,7 +85,8 @@ describe('remark-yaml()', function () {
             '',
             '-   Foo',
             ''
-        ].join('\n')), [
+        ].join('\n')),
+        [
             '---',
             'remark:',
             '  bullet: \'*\'',
@@ -94,11 +94,12 @@ describe('remark-yaml()', function () {
             '',
             '*   Foo',
             ''
-        ].join('\n'));
-    });
+        ].join('\n'),
+        'should set stringification options'
+    );
 
-    it('should throw exceptions with location information', function () {
-        throws(function () {
+    t.throws(
+        function () {
             yaml([
                 '---',
                 'remark:',
@@ -108,6 +109,10 @@ describe('remark-yaml()', function () {
                 '-   Foo',
                 ''
             ].join('\n'));
-        }, /1:1-4:4: Invalid value `\?` for setting `options\.bullet`/);
-    });
+        },
+        /1:1-4:4: Invalid value `\?` for setting `options\.bullet`/,
+        'should throw exceptions with location information'
+    );
+
+    t.end();
 });
