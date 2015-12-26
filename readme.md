@@ -10,27 +10,9 @@ Configure **remark** with YAML front-matter.
 npm install remark-yaml-config
 ```
 
-[Component.js](https://github.com/componentjs/component)
-
-```bash
-component install wooorm/remark-yaml-config
-```
-
-[Duo](http://duojs.org/#getting-started)
-
-```javascript
-var yamlConfig = require('wooorm/remark-yaml-config');
-```
-
-UMD: globals, AMD, and CommonJS ([uncompressed](remark-yaml-config.js) and [compressed](remark-yaml-config.min.js)):
-
-```html
-<script src="path/to/remark.js"></script>
-<script src="path/to/remark-yaml-config.js"></script>
-<script>
-  remark.use(remarkYAMLConfig);
-</script>
-```
+**remark-yaml-config** is also available for [duo](http://duojs.org/#getting-started),
+and as an AMD, CommonJS, and globals module, [uncompressed and
+compressed](https://github.com/wooorm/remark-yaml-config/releases).
 
 ## Table of Contents
 
