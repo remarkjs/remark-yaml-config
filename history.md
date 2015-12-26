@@ -5,6 +5,11 @@ remark:
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+2.0.2 / 2015-12-26
+==================
+
+*   Rebuild history ([61e8bb8](https://github.com/wooorm/remark-yaml-config/commit/61e8bb8))
+
 2.0.1 / 2015-12-26
 ==================
 
