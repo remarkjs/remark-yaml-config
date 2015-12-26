@@ -7,7 +7,7 @@
  */
 
 var assert = require('assert');
-var mdast = require('mdast');
+var remark = require('remark');
 var yamlConfig = require('./');
 
 /*
@@ -25,7 +25,7 @@ var throws = assert.throws;
  * @return {string}
  */
 function yaml(value, options) {
-    var parser = mdast.use(yamlConfig, options);
+    var parser = remark.use(yamlConfig, options);
 
     return parser.stringify(parser.parse(value));
 }
