@@ -8,6 +8,8 @@
 
 'use strict';
 
+/* eslint-env commonjs */
+
 /*
  * Dependencies.
  */
@@ -23,7 +25,7 @@ function noop() {}
  * Wrapper factory.
  *
  * @param {Function} method - Type to wrap.
- * @return {Function}
+ * @return {Function} - Wrapper.
  */
 function factory(method) {
     var callback = method || noop;

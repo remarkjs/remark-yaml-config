@@ -15,7 +15,7 @@ var yamlConfig = require('./');
  *
  * @param {string} value - Markdown.
  * @param {Object?} [options] - Plug-in configuration.
- * @return {string}
+ * @return {string} - Processed `value`.
  */
 function yaml(value, options) {
     var parser = remark.use(yamlConfig, options);
