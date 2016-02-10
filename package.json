@@ -13,8 +13,18 @@
   "dependencies": {
     "js-yaml": "^3.5.2"
   },
-  "repository": "wooorm/remark-yaml-config",
-  "author": "Titus Wormer <tituswormer@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wooorm/remark-yaml-config.git"
+  },
+  "bugs": "https://github.com/wooorm/remark-yaml-config/issues",
+  "author": "Titus Wormer <tituswormer@gmail.com> (http://wooorm.com)",
+  "contributors": [
+    "Titus Wormer <tituswormer@gmail.com> (http://wooorm.com)"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
   "files": [
     "index.js"
   ],
