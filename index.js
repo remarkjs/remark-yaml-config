@@ -14,50 +14,58 @@
  * Dependencies.
  */
 
-var yaml = require('remark-yaml');
-
-/**
- * No-operation.
- */
-function noop() {}
+var jsYAML = require('js-yaml');
 
 /**
  * Wrapper factory.
  *
- * @param {Function} method - Type to wrap.
- * @return {Function} - Wrapper.
+ * @param {Function} original - Spied on function.
+ * @return {Function} - Spy.
  */
-function factory(method) {
-    var callback = method || noop;
+function factory(original) {
+    /**
+     * Replacer for tokeniser or visitor.
+     *
+     * @param {Node|Function} node - Node, when visitor,
+     *   or `eat`.
+     * @return {*} - Result of the spied on function.
+     */
+    function replacement(node) {
+        var self = this;
+        var result = original.apply(self, arguments);
+        var marker = result && result.type ? result : node;
+        var data;
 
-    return function (node, instance) {
-        var config = node.yaml && node.yaml.remark;
+        try {
+            data = jsYAML.safeLoad(marker.value);
+            data = data && data.remark;
 
-        if (config) {
-            try {
-                instance.setOptions(config);
-            } catch (exception) {
-                instance.file.fail(exception.message, node);
+            if (data) {
+                self.setOptions(data);
             }
+        } catch (exception) {
+            self.file.fail(exception.message, marker);
         }
 
-        callback.apply(this, arguments);
-    };
+        return result;
+    }
+
+    replacement.locator = original.locator;
+
+    return replacement;
 }
 
 /**
- * Modify remark to parse/stringify YAML.
+ * Modify remark to read configuration from comments.
  *
  * @param {Remark} remark - Instance.
- * @param {Object?} [options] - Plug-in configuration.
  */
-function attacher(remark, options) {
-    var settings = options || {};
+function attacher(remark) {
+    var parser = remark.Parser.prototype.blockTokenizers;
+    var compiler = remark.Compiler.prototype.visitors;
 
-    settings.onparse = factory(settings.onparse);
-    settings.onstringify = factory(settings.onstringify);
-
-    remark.use(yaml, settings);
+    parser.yamlFrontMatter = factory(parser.yamlFrontMatter);
+    compiler.yaml = factory(compiler.yaml);
 }
 
 /*

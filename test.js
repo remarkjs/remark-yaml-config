@@ -10,52 +10,19 @@ var test = require('tape');
 var remark = require('remark');
 var yamlConfig = require('./');
 
-/**
- * Shortcut to process.
- *
- * @param {string} value - Markdown.
- * @param {Object?} [options] - Plug-in configuration.
- * @return {string} - Processed `value`.
- */
-function yaml(value, options) {
-    var parser = remark.use(yamlConfig, options);
-
-    return parser.stringify(parser.parse(value));
-}
-
 /*
  * Tests.
  */
 
-test('remark-yaml()', function (t) {
+test('remark-yaml-config', function (t) {
     t.equal(
-        yaml('# Foo bar\n'),
+        remark().use(yamlConfig).process('# Foo bar\n'),
         '# Foo bar\n',
         'should not fail without yaml'
     );
 
     t.equal(
-        yaml([
-            '---',
-            'hello: "world"',
-            '---',
-            '',
-            '# Foo bar',
-            ''
-        ].join('\n')),
-        [
-            '---',
-            'hello: world',
-            '---',
-            '',
-            '# Foo bar',
-            ''
-        ].join('\n'),
-        'should parse and stringify yaml'
-    );
-
-    t.equal(
-        yaml([
+        remark().use(yamlConfig).process([
             '---',
             'remark:',
             '  commonmark: true',
@@ -77,7 +44,7 @@ test('remark-yaml()', function (t) {
     );
 
     t.equal(
-        yaml([
+        remark().use(yamlConfig).process([
             '---',
             'remark:',
             '  bullet: "*"',
@@ -89,7 +56,7 @@ test('remark-yaml()', function (t) {
         [
             '---',
             'remark:',
-            '  bullet: \'*\'',
+            '  bullet: "*"',
             '---',
             '',
             '*   Foo',
@@ -100,7 +67,7 @@ test('remark-yaml()', function (t) {
 
     t.throws(
         function () {
-            yaml([
+            remark().use(yamlConfig).process([
                 '---',
                 'remark:',
                 '  bullet: "?"',
