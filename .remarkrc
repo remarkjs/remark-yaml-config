@@ -1,10 +1,12 @@
 {
   "output": true,
   "plugins": [
-    "lint",
-    "./",
+    "comment-config",
     "github",
-    "toc"
+    "usage",
+    "slug",
+    "lint",
+    "validate-links"
   ],
   "settings": {
     "bullet": "*"

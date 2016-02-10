@@ -26,10 +26,12 @@
     "jscs": "^2.0.0",
     "jscs-jsdoc": "^1.0.0",
     "remark": "^3.0.0",
+    "remark-comment-config": "^2.0.2",
     "remark-github": "^2.0.0",
     "remark-lint": "^2.0.0",
-    "remark-toc": "^2.0.0",
+    "remark-slug": "^4.0.0",
     "remark-usage": "^2.0.0",
+    "remark-validate-links": "^2.0.2",
     "tape": "^4.0.0"
   },
   "scripts": {

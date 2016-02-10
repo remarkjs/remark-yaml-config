@@ -1,7 +1,9 @@
-var yamlConfig = require('./index.js');
-var remark = require('remark').use(yamlConfig);
+// Dependencies:
+var remark = require('remark');
+var config = require('./index.js');
 
-var input = [
+// Process:
+var doc = remark().use(config).process([
     '---',
     'remark:',
     '  commonmark: true',
@@ -12,11 +14,7 @@ var input = [
     '',
     '- Hello (this is a stringification setting)',
     ''
-].join('\n');
+].join('\n'));
 
-var tree = remark.parse(input);
-
-// Stringifying the document yields:
-var doc = remark.stringify(tree);
-
+// Yields:
 console.log('markdown', doc);

@@ -1,35 +1,31 @@
-# remark-yaml-config [![Build Status](https://img.shields.io/travis/wooorm/remark-yaml-config.svg)](https://travis-ci.org/wooorm/remark-yaml-config) [![Coverage Status](https://img.shields.io/codecov/c/github/wooorm/remark-yaml-config.svg)](https://codecov.io/github/wooorm/remark-yaml-config)
+# remark-yaml-config [![Build Status][travis-badge]][travis] [![Coverage Status][codecov-badge]][codecov]
 
 Configure **remark** with YAML front-matter.
 
 ## Installation
 
-[npm](https://docs.npmjs.com/cli/install)
+[npm][npm-install]:
 
 ```bash
 npm install remark-yaml-config
 ```
 
-**remark-yaml-config** is also available for [duo](http://duojs.org/#getting-started),
-and as an AMD, CommonJS, and globals module, [uncompressed and
-compressed](https://github.com/wooorm/remark-yaml-config/releases).
-
-## Table of Contents
-
-*   [Usage](#usage)
-
-*   [API](#api)
-
-    *   [remark.use(yamlConfig, options)](#remarkuseyamlconfig-options)
-
-*   [License](#license)
+**remark-yaml-config** is also available as an AMD, CommonJS, and
+globals module, [uncompressed and compressed][releases].
 
 ## Usage
 
+Dependencies:
+
 ```javascript
-var yamlConfig = require('remark-yaml-config');
-var remark = require('remark').use(yamlConfig);
-var input = [
+var remark = require('remark');
+var config = require('remark-yaml-config');
+```
+
+Process:
+
+```javascript
+var doc = remark().use(config).process([
     '---',
     'remark:',
     '  commonmark: true',
@@ -40,15 +36,10 @@ var input = [
     '',
     '- Hello (this is a stringification setting)',
     ''
-].join('\n');
-var tree = remark.parse(input);
+].join('\n'));
 ```
 
-Stringifying the document yields:
-
-```javascript
-var doc = remark.stringify(tree);
-```
+Yields:
 
 ```markdown
 ---
@@ -64,24 +55,31 @@ remark:
 
 ## API
 
-### [remark](https://github.com/wooorm/remark#api).[use](https://github.com/wooorm/remark#remarkuseplugin-options)(yamlConfig, options)
+### `remark.use(yamlConfig)`
 
-Passes the [configuration](https://github.com/wooorm/remark/blob/master/doc/Options.md)
-found in YAML front-matter (under the `remark` key) to **remark**.
-
-This is especially useful if you’re using **remark**’s [CLI](https://github.com/wooorm/remark#cli),
-which allows multiple documents to be processed in one go, but you’d like
-certain files to have different formatting.
-
-**Signatures**
-
-*   `remark = remark.use(yamlConfig, options?)`.
-
-**Parameters**
-
-*   `yamlConfig` — This plugin;
-*   `options` (`Object?`) — Passed to [remark-yaml](https://github.com/wooorm/remark-yaml#remarkuseyaml-options).
+Passes the [configuration][remark-config] found in YAML front-matter
+(under the `remark` key) to **remark**.
 
 ## License
 
-[MIT](LICENSE) © [Titus Wormer](http://wooorm.com)
+[MIT][license] © [Titus Wormer][author]
+
+<!-- Definitions -->
+
+[travis-badge]: https://img.shields.io/travis/wooorm/remark-yaml-config.svg
+
+[travis]: https://travis-ci.org/wooorm/remark-yaml-config
+
+[codecov-badge]: https://img.shields.io/codecov/c/github/wooorm/remark-yaml-config.svg
+
+[codecov]: https://codecov.io/github/wooorm/remark-yaml-config
+
+[npm-install]: https://docs.npmjs.com/cli/install
+
+[releases]: https://github.com/wooorm/remark-yaml-config/releases
+
+[license]: LICENSE
+
+[author]: http://wooorm.com
+
+[remark-config]: https://github.com/wooorm/remark/blob/master/doc/remarksetting.7.md
