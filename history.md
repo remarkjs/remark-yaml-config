@@ -2,6 +2,12 @@
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+3.0.0 / 2016-02-14
+==================
+
+*   Remove support for Duo ([`75650fb`](https://github.com/wooorm/remark-yaml-config/commit/75650fb))
+*   Update for changes in remark@4.0.0 ([`893a238`](https://github.com/wooorm/remark-yaml-config/commit/893a238))
+
 2.0.2 / 2015-12-26
 ==================
 
