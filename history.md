@@ -2,6 +2,12 @@
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+3.0.1 / 2016-06-13
+==================
+
+*   Update metadata ([`6bec5d0`](https://github.com/wooorm/remark-yaml-config/commit/6bec5d0))
+*   Update dev-dependencies ([`dbac9f5`](https://github.com/wooorm/remark-yaml-config/commit/dbac9f5))
+
 3.0.0 / 2016-02-14
 ==================
 
