@@ -1,10 +1,10 @@
-# remark-yaml-config [![Build Status][travis-badge]][travis] [![Coverage Status][codecov-badge]][codecov]
+# remark-yaml-config [![Build Status][build-badge]][build-status] [![Coverage Status][coverage-badge]][coverage-status] [![Chat][chat-badge]][chat]
 
-Configure **remark** with YAML front-matter.
+Configure [**remark**][remark] with YAML front-matter.
 
 ## Installation
 
-[npm][npm-install]:
+[npm][]:
 
 ```bash
 npm install remark-yaml-config
@@ -57,8 +57,11 @@ remark:
 
 ### `remark.use(yamlConfig)`
 
-Passes the [configuration][remark-config] found in YAML front-matter
-(under the `remark` key) to **remark**.
+Passes the configuration at the `remark` field as [parse][parse-settings]
+and [stringify][stringify-settings] settings.
+
+Just like [**remark-comment-config**][remark-comment-config], but YAML is
+more visible.
 
 ## License
 
@@ -66,15 +69,17 @@ Passes the [configuration][remark-config] found in YAML front-matter
 
 <!-- Definitions -->
 
-[travis-badge]: https://img.shields.io/travis/wooorm/remark-yaml-config.svg
+[build-badge]: https://img.shields.io/travis/wooorm/remark-yaml-config.svg
 
-[travis]: https://travis-ci.org/wooorm/remark-yaml-config
+[build-status]: https://travis-ci.org/wooorm/remark-yaml-config
 
-[codecov-badge]: https://img.shields.io/codecov/c/github/wooorm/remark-yaml-config.svg
+[coverage-badge]: https://img.shields.io/codecov/c/github/wooorm/remark-yaml-config.svg
 
-[codecov]: https://codecov.io/github/wooorm/remark-yaml-config
+[coverage-status]: https://codecov.io/github/wooorm/remark-yaml-config
 
-[npm-install]: https://docs.npmjs.com/cli/install
+[chat-badge]: https://img.shields.io/gitter/room/wooorm/remark.svg
+
+[chat]: https://gitter.im/wooorm/remark
 
 [releases]: https://github.com/wooorm/remark-yaml-config/releases
 
@@ -82,4 +87,12 @@ Passes the [configuration][remark-config] found in YAML front-matter
 
 [author]: http://wooorm.com
 
-[remark-config]: https://github.com/wooorm/remark/blob/master/doc/remarksetting.7.md
+[npm]: https://docs.npmjs.com/cli/install
+
+[remark]: https://github.com/wooorm/remark
+
+[parse-settings]: https://github.com/wooorm/remark/blob/master/packages/remark-parse/readme.md#options
+
+[stringify-settings]: https://github.com/wooorm/remark/blob/master/packages/remark-stringify/readme.md#options
+
+[remark-comment-config]: https://github.com/wooorm/remark-comment-config
