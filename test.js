@@ -16,7 +16,7 @@ var yamlConfig = require('./');
 
 test('remark-yaml-config', function (t) {
     t.equal(
-        remark().use(yamlConfig).process('# Foo bar\n'),
+        remark().use(yamlConfig).process('# Foo bar\n').toString(),
         '# Foo bar\n',
         'should not fail without yaml'
     );
@@ -30,7 +30,7 @@ test('remark-yaml-config', function (t) {
             '',
             '1)  Foo',
             ''
-        ].join('\n')),
+        ].join('\n')).toString(),
         [
             '---',
             'remark:',
@@ -52,7 +52,7 @@ test('remark-yaml-config', function (t) {
             '',
             '-   Foo',
             ''
-        ].join('\n')),
+        ].join('\n')).toString(),
         [
             '---',
             'remark:',
@@ -75,7 +75,7 @@ test('remark-yaml-config', function (t) {
                 '',
                 '-   Foo',
                 ''
-            ].join('\n'));
+            ].join('\n')).toString();
         },
         /1:1-4:4: Invalid value `\?` for setting `options\.bullet`/,
         'should throw exceptions with location information'

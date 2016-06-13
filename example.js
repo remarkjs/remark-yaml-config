@@ -3,7 +3,7 @@ var remark = require('remark');
 var config = require('./index.js');
 
 // Process:
-var doc = remark().use(config).process([
+var file = remark().use(config).process([
     '---',
     'remark:',
     '  commonmark: true',
@@ -17,4 +17,4 @@ var doc = remark().use(config).process([
 ].join('\n'));
 
 // Yields:
-console.log('markdown', doc);
+console.log('markdown', String(file));

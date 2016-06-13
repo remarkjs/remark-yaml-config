@@ -25,7 +25,7 @@ var config = require('remark-yaml-config');
 Process:
 
 ```javascript
-var doc = remark().use(config).process([
+var file = remark().use(config).process([
     '---',
     'remark:',
     '  commonmark: true',
