@@ -2,6 +2,11 @@
 
 <!--lint disable no-multiple-toplevel-headings-->
 
+3.0.2 / 2016-06-23
+==================
+
+*   Fix error when without parser / compiler ([`8e83205`](https://github.com/wooorm/remark-yaml-config/commit/8e83205))
+
 3.0.1 / 2016-06-13
 ==================
 
