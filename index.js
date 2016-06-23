@@ -58,14 +58,21 @@ function factory(original) {
 /**
  * Modify remark to read configuration from comments.
  *
- * @param {Remark} remark - Instance.
+ * @param {Unified} processor - Instance.
  */
-function attacher(remark) {
-    var parser = remark.Parser.prototype.blockTokenizers;
-    var compiler = remark.Compiler.prototype.visitors;
+function attacher(processor) {
+    var Parser = processor.Parser;
+    var Compiler = processor.Compiler;
+    var parser = Parser && Parser.prototype.blockTokenizers;
+    var compiler = Compiler && Compiler.prototype.visitors;
 
-    parser.yamlFrontMatter = factory(parser.yamlFrontMatter);
-    compiler.yaml = factory(compiler.yaml);
+    if (parser && parser.yamlFrontMatter) {
+        parser.yamlFrontMatter = factory(parser.yamlFrontMatter);
+    }
+
+    if (compiler && compiler.yaml) {
+        compiler.yaml = factory(compiler.yaml);
+    }
 }
 
 /*
