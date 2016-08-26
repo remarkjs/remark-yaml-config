@@ -8,75 +8,56 @@
 
 'use strict';
 
-/* eslint-env commonjs */
-
-/*
- * Dependencies.
- */
-
+/* Dependencies. */
 var jsYAML = require('js-yaml');
 
-/**
- * Wrapper factory.
- *
- * @param {Function} original - Spied on function.
- * @return {Function} - Spy.
- */
-function factory(original) {
-    /**
-     * Replacer for tokeniser or visitor.
-     *
-     * @param {Node|Function} node - Node, when visitor,
-     *   or `eat`.
-     * @return {*} - Result of the spied on function.
-     */
-    function replacement(node) {
-        var self = this;
-        var result = original.apply(self, arguments);
-        var marker = result && result.type ? result : node;
-        var data;
-
-        try {
-            data = jsYAML.safeLoad(marker.value);
-            data = data && data.remark;
-
-            if (data) {
-                self.setOptions(data);
-            }
-        } catch (exception) {
-            self.file.fail(exception.message, marker);
-        }
-
-        return result;
-    }
-
-    replacement.locator = original.locator;
-
-    return replacement;
-}
+/* Expose. */
+module.exports = yamlConfig;
 
 /**
  * Modify remark to read configuration from comments.
  *
  * @param {Unified} processor - Instance.
  */
-function attacher(processor) {
-    var Parser = processor.Parser;
-    var Compiler = processor.Compiler;
-    var parser = Parser && Parser.prototype.blockTokenizers;
-    var compiler = Compiler && Compiler.prototype.visitors;
+function yamlConfig(processor) {
+  var Parser = processor.Parser;
+  var Compiler = processor.Compiler;
+  var parser = Parser && Parser.prototype.blockTokenizers;
+  var compiler = Compiler && Compiler.prototype.visitors;
 
-    if (parser && parser.yamlFrontMatter) {
-        parser.yamlFrontMatter = factory(parser.yamlFrontMatter);
-    }
+  if (parser && parser.yamlFrontMatter) {
+    parser.yamlFrontMatter = factory(parser.yamlFrontMatter);
+  }
 
-    if (compiler && compiler.yaml) {
-        compiler.yaml = factory(compiler.yaml);
-    }
+  if (compiler && compiler.yaml) {
+    compiler.yaml = factory(compiler.yaml);
+  }
 }
 
-/*
- * Expose.
- */
+/* Wrapper factory. */
+function factory(original) {
+  replacement.locator = original.locator;
 
-module.exports = attacher;
+  return replacement;
+
+  /* Replacer for tokeniser or visitor. */
+  function replacement(node) {
+    var self = this;
+    var result = original.apply(self, arguments);
+    var marker = result && result.type ? result : node;
+    var data;
+
+    try {
+      data = jsYAML.safeLoad(marker.value);
+      data = data && data.remark;
+
+      if (data) {
+        self.setOptions(data);
+      }
+    } catch (err) {
+      self.file.fail(err.message, marker);
+    }
+
+    return result;
+  }
+}
