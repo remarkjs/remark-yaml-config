@@ -28,14 +28,14 @@
   "devDependencies": {
     "browserify": "^13.0.0",
     "esmangle": "^1.0.0",
-    "nyc": "^8.1.0",
+    "nyc": "^10.0.0",
     "remark": "^6.0.0",
     "remark-cli": "^2.0.0",
     "remark-html": "^5.0.1",
     "remark-preset-wooorm": "^1.0.0",
     "tape": "^4.0.0",
     "unified": "^5.0.0",
-    "xo": "^0.16.0"
+    "xo": "^0.17.1"
   },
   "scripts": {
     "build-bundle": "browserify --no-builtins index.js -s remarkYAMLConfig > remark-yaml-config.js",
