@@ -33,7 +33,6 @@
     "remark-cli": "^2.0.0",
     "remark-html": "^5.0.1",
     "remark-preset-wooorm": "^1.0.0",
-    "remark-usage": "^4.0.1",
     "tape": "^4.0.0",
     "unified": "^5.0.0",
     "xo": "^0.16.0"
@@ -67,9 +66,6 @@
   },
   "remarkConfig": {
     "output": true,
-    "presets": "wooorm",
-    "plugins": [
-      "usage"
-    ]
+    "presets": "wooorm"
   }
 }
