@@ -12,16 +12,10 @@ npm install remark-yaml-config
 
 ## Usage
 
-Dependencies:
-
 ```javascript
 var remark = require('remark');
 var config = require('remark-yaml-config');
-```
 
-Process:
-
-```javascript
 var file = remark().use(config).process([
   '---',
   'remark:',
@@ -34,6 +28,8 @@ var file = remark().use(config).process([
   '- Hello (this is a stringification setting)',
   ''
 ].join('\n'));
+
+console.log(String(file));
 ```
 
 Yields:
