@@ -1,24 +1,10 @@
-/**
- * @author Titus Wormer
- * @copyright 2015 Titus Wormer
- * @license MIT
- * @module remark:yaml-config
- * @fileoverview Configure remark with YAML front-matter.
- */
-
 'use strict';
 
-/* Dependencies. */
 var jsYAML = require('js-yaml');
 
-/* Expose. */
 module.exports = yamlConfig;
 
-/**
- * Modify remark to read configuration from comments.
- *
- * @param {Unified} processor - Instance.
- */
+/* Modify remark to read configuration from comments. */
 function yamlConfig(processor) {
   var Parser = processor.Parser;
   var Compiler = processor.Compiler;

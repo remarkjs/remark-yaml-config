@@ -1,21 +1,11 @@
-/**
- * @author Titus Wormer
- * @copyright 2015 Titus Wormer
- * @license MIT
- * @module remark:yaml-config
- * @fileoverview Test suite for `remark-yaml-config`.
- */
-
 'use strict';
 
-/* Dependencies. */
 var test = require('tape');
 var unified = require('unified');
 var remark = require('remark');
 var html = require('remark-html');
 var yamlConfig = require('./');
 
-/* Tests. */
 test('remark-yaml-config', function (t) {
   t.equal(
     remark().use(yamlConfig).process('# Foo bar\n').toString(),
