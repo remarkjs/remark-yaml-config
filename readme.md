@@ -10,9 +10,6 @@ Configure [**remark**][remark] with YAML front-matter.
 npm install remark-yaml-config
 ```
 
-**remark-yaml-config** is also available as an AMD, CommonJS, and
-globals module, [uncompressed and compressed][releases].
-
 ## Usage
 
 Dependencies:
@@ -80,8 +77,6 @@ more visible.
 [chat-badge]: https://img.shields.io/gitter/room/wooorm/remark.svg
 
 [chat]: https://gitter.im/wooorm/remark
-
-[releases]: https://github.com/wooorm/remark-yaml-config/releases
 
 [license]: LICENSE
 
