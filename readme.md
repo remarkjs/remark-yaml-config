@@ -16,7 +16,7 @@ npm install remark-yaml-config
 var remark = require('remark');
 var config = require('remark-yaml-config');
 
-var file = remark().use(config).process([
+var file = remark().use(config).processSync([
   '---',
   'remark:',
   '  commonmark: true',

@@ -8,13 +8,13 @@ var yamlConfig = require('./');
 
 test('remark-yaml-config', function (t) {
   t.equal(
-    remark().use(yamlConfig).process('# Foo bar\n').toString(),
+    remark().use(yamlConfig).processSync('# Foo bar\n').toString(),
     '# Foo bar\n',
     'should not fail without yaml'
   );
 
   t.equal(
-    remark().use(yamlConfig).process([
+    remark().use(yamlConfig).processSync([
       '---',
       'remark:',
       '  commonmark: true',
@@ -36,7 +36,7 @@ test('remark-yaml-config', function (t) {
   );
 
   t.equal(
-    remark().use(yamlConfig).process([
+    remark().use(yamlConfig).processSync([
       '---',
       'remark:',
       '  bullet: "*"',
@@ -59,7 +59,7 @@ test('remark-yaml-config', function (t) {
 
   t.throws(
     function () {
-      remark().use(yamlConfig).process([
+      remark().use(yamlConfig).processSync([
         '---',
         'remark:',
         '  bullet: "?"',
@@ -81,7 +81,7 @@ test('remark-yaml-config', function (t) {
   );
 
   t.equal(
-    remark().use(html).use(yamlConfig).process([
+    remark().use(html).use(yamlConfig).processSync([
       '---',
       'remark:',
       '  commonmark: true',
