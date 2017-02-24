@@ -75,7 +75,7 @@ test('remark-yaml-config', function (t) {
 
   t.doesNotThrow(
     function () {
-      unified().use(yamlConfig);
+      unified().use(yamlConfig).freeze();
     },
     'should not throw without parser / compiler'
   );
