@@ -12,27 +12,36 @@ npm install remark-yaml-config
 
 ## Usage
 
-```javascript
-var remark = require('remark');
-var config = require('remark-yaml-config');
+Say we have the following file, `example.md`:
 
-var file = remark().use(config).processSync([
-  '---',
-  'remark:',
-  '  commonmark: true',
-  '  bullet: "*"',
-  '---',
-  '',
-  '1) Commonmark list (this is a parse setting)',
-  '',
-  '- Hello (this is a stringification setting)',
-  ''
-].join('\n'));
+```markdown
+---
+remark:
+  commonmark: true
+  bullet: "*"
+---
 
-console.log(String(file));
+1)  Commonmark list (this is a parse setting)
+
+*   Hello (this is a stringification setting)
 ```
 
-Yields:
+And our script, `example.js`, looks as follows:
+
+```javascript
+var vfile = require('to-vfile');
+var remark = require('remark');
+var yamlConfig = require('remark-yaml-config');
+
+remark()
+  .use(yamlConfig)
+  .process(vfile.readSync('example.md'), function (err, file) {
+    if (err) throw err;
+    console.log(String(file));
+  });
+```
+
+Now, running `node example` yields:
 
 ```markdown
 ---
