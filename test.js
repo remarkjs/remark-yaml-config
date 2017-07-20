@@ -3,18 +3,22 @@
 var test = require('tape');
 var unified = require('unified');
 var remark = require('remark');
+var frontmatter = require('remark-frontmatter');
 var html = require('remark-html');
 var yamlConfig = require('./');
 
+var processor = remark().use(frontmatter).use(yamlConfig);
+var processorHTML = remark().use(frontmatter).use(yamlConfig).use(html);
+
 test('remark-yaml-config', function (t) {
   t.equal(
-    remark().use(yamlConfig).processSync('# Foo bar\n').toString(),
+    processor.processSync('# Foo bar\n').toString(),
     '# Foo bar\n',
     'should not fail without yaml'
   );
 
   t.equal(
-    remark().use(yamlConfig).processSync([
+    processor.processSync([
       '---',
       'remark:',
       '  commonmark: true',
@@ -36,7 +40,7 @@ test('remark-yaml-config', function (t) {
   );
 
   t.equal(
-    remark().use(yamlConfig).processSync([
+    processor.processSync([
       '---',
       'remark:',
       '  bullet: "*"',
@@ -59,7 +63,7 @@ test('remark-yaml-config', function (t) {
 
   t.throws(
     function () {
-      remark().use(yamlConfig).processSync([
+      processor.processSync([
         '---',
         'remark:',
         '  bullet: "?"',
@@ -81,7 +85,7 @@ test('remark-yaml-config', function (t) {
   );
 
   t.equal(
-    remark().use(html).use(yamlConfig).processSync([
+    processorHTML.processSync([
       '---',
       'remark:',
       '  commonmark: true',
