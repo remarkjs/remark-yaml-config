@@ -1,7 +1,7 @@
 language: node_js
 node_js:
 - '4.0'
-- '8.0'
+- '9.0'
 after_script: bash <(curl -s https://codecov.io/bash)
 deploy:
   - provider: npm
@@ -10,7 +10,7 @@ deploy:
       secure: lQfUtgnBXsX+HZlwTRYdcvTEI1T/axHQWJaFESdSaDSUn4j2NzTQRq/L6zy6GPj1RW5j3qvRpINcatvLzaJWo7nnBb6x16tK1OYzszagdVIyYHLip9DlSoxuHlPi52fbzdnOs2x1OELpo4D8lJJjXXq3zpjRNiHjfWKrBaq+cYE=
     on:
       tags: true
-      node: '4.0'
+      node: '9.0'
   - provider: releases
     api_key:
       secure: P6zTOafeMF3tVmK/GdNZ1tnJH4sioRN3s0VWfCepazy7RGBd/Gv3eI4Vgg/N4Y9ulacCKqJYGJYbS+qOrJBTYpZU+bo5dL/ftN5YN5TjGApxA9/E/v84NGUXWVq2D5qDQBKyj5k7ykkpQDpD/41IxAeeVyGLosYkUIcIvXomtcI=
@@ -19,4 +19,4 @@ deploy:
       - "remark-yaml-config.min.js"
     on:
       tags: true
-      node: '8.0'
+      node: '9.0'
