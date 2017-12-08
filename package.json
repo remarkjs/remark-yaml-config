@@ -10,8 +10,8 @@
     "settings",
     "remark"
   ],
-  "repository": "https://github.com/wooorm/remark-yaml-config",
-  "bugs": "https://github.com/wooorm/remark-yaml-config/issues",
+  "repository": "remarkjs/remark-yaml-config",
+  "bugs": "https://github.com/remarkjs/remark-yaml-config/issues",
   "author": "Titus Wormer <tituswormer@gmail.com> (http://wooorm.com)",
   "contributors": [
     "Titus Wormer <tituswormer@gmail.com> (http://wooorm.com)"

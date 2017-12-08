@@ -83,17 +83,17 @@ more visible.
 
 <!-- Definitions -->
 
-[build-badge]: https://img.shields.io/travis/wooorm/remark-yaml-config.svg
+[build-badge]: https://img.shields.io/travis/remarkjs/remark-yaml-config.svg
 
-[build-status]: https://travis-ci.org/wooorm/remark-yaml-config
+[build-status]: https://travis-ci.org/remarkjs/remark-yaml-config
 
-[coverage-badge]: https://img.shields.io/codecov/c/github/wooorm/remark-yaml-config.svg
+[coverage-badge]: https://img.shields.io/codecov/c/github/remarkjs/remark-yaml-config.svg
 
-[coverage-status]: https://codecov.io/github/wooorm/remark-yaml-config
+[coverage-status]: https://codecov.io/github/remarkjs/remark-yaml-config
 
-[chat-badge]: https://img.shields.io/gitter/room/wooorm/remark.svg
+[chat-badge]: https://img.shields.io/gitter/room/remarkjs/Lobby.svg
 
-[chat]: https://gitter.im/wooorm/remark
+[chat]: https://gitter.im/remarkjs/Lobby
 
 [license]: LICENSE
 
@@ -101,14 +101,14 @@ more visible.
 
 [npm]: https://docs.npmjs.com/cli/install
 
-[remark]: https://github.com/wooorm/remark
+[remark]: https://github.com/remarkjs/remark
 
-[parse-settings]: https://github.com/wooorm/remark/blob/master/packages/remark-parse/readme.md#options
+[parse-settings]: https://github.com/remarkjs/remark/blob/master/packages/remark-parse/readme.md#options
 
-[stringify-settings]: https://github.com/wooorm/remark/blob/master/packages/remark-stringify/readme.md#options
+[stringify-settings]: https://github.com/remarkjs/remark/blob/master/packages/remark-stringify/readme.md#options
 
-[remark-comment-config]: https://github.com/wooorm/remark-comment-config
+[remark-comment-config]: https://github.com/remarkjs/remark-comment-config
 
-[remark-frontmatter]: https://github.com/wooorm/remark-frontmatter
+[remark-frontmatter]: https://github.com/remarkjs/remark-frontmatter
 
-[8]: https://github.com/wooorm/remark/releases/tag/8.0.0
+[8]: https://github.com/remarkjs/remark/releases/tag/8.0.0
