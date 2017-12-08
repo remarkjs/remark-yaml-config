@@ -77,6 +77,13 @@ more visible.
 *   [`remark-frontmatter`][remark-frontmatter]
     — Frontmatter support, including yaml, toml, and more
 
+## Contribute
+
+See [`contribute.md` in `remarkjs/remarkj`][contribute] for ways to get started.
+
+This organisation has a [Code of Conduct][coc].  By interacting with this
+repository, organisation, or community you agree to abide by its terms.
+
 ## License
 
 [MIT][license] © [Titus Wormer][author]
@@ -112,3 +119,7 @@ more visible.
 [remark-frontmatter]: https://github.com/remarkjs/remark-frontmatter
 
 [8]: https://github.com/remarkjs/remark/releases/tag/8.0.0
+
+[contribute]: https://github.com/remarkjs/remark/blob/master/contributing.md
+
+[coc]: https://github.com/remarkjs/remark/blob/master/code-of-conduct.md
