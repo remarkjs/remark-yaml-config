@@ -30,18 +30,18 @@ remark:
 And our script, `example.js`, looks as follows:
 
 ```javascript
-var vfile = require('to-vfile');
-var remark = require('remark');
-var frontmatter = require('remark-frontmatter');
-var yamlConfig = require('remark-yaml-config');
+var vfile = require('to-vfile')
+var remark = require('remark')
+var frontmatter = require('remark-frontmatter')
+var yamlConfig = require('remark-yaml-config')
 
 remark()
   .use(frontmatter)
   .use(yamlConfig)
-  .process(vfile.readSync('example.md'), function (err, file) {
-    if (err) throw err;
-    console.log(String(file));
-  });
+  .process(vfile.readSync('example.md'), function(err, file) {
+    if (err) throw err
+    console.log(String(file))
+  })
 ```
 
 Now, running `node example` yields:
