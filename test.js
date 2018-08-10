@@ -5,7 +5,7 @@ var unified = require('unified');
 var remark = require('remark');
 var frontmatter = require('remark-frontmatter');
 var html = require('remark-html');
-var yamlConfig = require('./');
+var yamlConfig = require('.');
 
 var processor = remark().use(frontmatter).use(yamlConfig);
 var processorHTML = remark().use(frontmatter).use(yamlConfig).use(html);
