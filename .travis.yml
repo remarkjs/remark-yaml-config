@@ -4,21 +4,13 @@ node_js:
 - '9.0'
 after_script: bash <(curl -s https://codecov.io/bash)
 deploy:
-  - provider: npm
-    skip_cleanup: true
-    email: tituswormer@gmail.com
-    api_key:
-      secure: lQfUtgnBXsX+HZlwTRYdcvTEI1T/axHQWJaFESdSaDSUn4j2NzTQRq/L6zy6GPj1RW5j3qvRpINcatvLzaJWo7nnBb6x16tK1OYzszagdVIyYHLip9DlSoxuHlPi52fbzdnOs2x1OELpo4D8lJJjXXq3zpjRNiHjfWKrBaq+cYE=
-    on:
-      tags: true
-      node: '9.0'
-  - provider: releases
-    skip_cleanup: true
-    api_key:
-      secure: P6zTOafeMF3tVmK/GdNZ1tnJH4sioRN3s0VWfCepazy7RGBd/Gv3eI4Vgg/N4Y9ulacCKqJYGJYbS+qOrJBTYpZU+bo5dL/ftN5YN5TjGApxA9/E/v84NGUXWVq2D5qDQBKyj5k7ykkpQDpD/41IxAeeVyGLosYkUIcIvXomtcI=
-    file:
-      - "remark-yaml-config.js"
-      - "remark-yaml-config.min.js"
-    on:
-      tags: true
-      node: '9.0'
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: P6zTOafeMF3tVmK/GdNZ1tnJH4sioRN3s0VWfCepazy7RGBd/Gv3eI4Vgg/N4Y9ulacCKqJYGJYbS+qOrJBTYpZU+bo5dL/ftN5YN5TjGApxA9/E/v84NGUXWVq2D5qDQBKyj5k7ykkpQDpD/41IxAeeVyGLosYkUIcIvXomtcI=
+  file:
+    - "remark-yaml-config.js"
+    - "remark-yaml-config.min.js"
+  on:
+    tags: true
+    node: '9.0'
