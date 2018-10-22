@@ -40,8 +40,8 @@ function factory(original) {
       if (data) {
         self.setOptions(data)
       }
-    } catch (err) {
-      self.file.fail(err.message, marker)
+    } catch (error) {
+      self.file.fail(error.message, marker)
     }
 
     return result
