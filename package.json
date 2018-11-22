@@ -1,6 +1,6 @@
 {
   "name": "remark-yaml-config",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Configure remark with YAML front-matter",
   "license": "MIT",
   "keywords": [
