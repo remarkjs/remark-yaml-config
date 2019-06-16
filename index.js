@@ -4,6 +4,8 @@ var jsYAML = require('js-yaml')
 
 module.exports = yamlConfig
 
+var origin = 'remark-yaml-config:invalid-options'
+
 // Modify remark to read configuration from comments.
 function yamlConfig() {
   var Parser = this.Parser
@@ -41,7 +43,7 @@ function factory(original) {
         self.setOptions(data)
       }
     } catch (error) {
-      self.file.fail(error.message, marker)
+      self.file.fail(error.message, marker, origin)
     }
 
     return result
