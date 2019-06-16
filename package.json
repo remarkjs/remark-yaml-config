@@ -1,14 +1,19 @@
 {
   "name": "remark-yaml-config",
   "version": "4.0.3",
-  "description": "Configure remark with YAML front-matter",
+  "description": "remark plugin to configure it with YAML frontmatter",
   "license": "MIT",
   "keywords": [
+    "unified",
+    "remark",
+    "plugin",
+    "mdast",
+    "markdown",
     "yaml",
+    "frontmatter",
     "options",
     "config",
-    "settings",
-    "remark"
+    "settings"
   ],
   "repository": "remarkjs/remark-yaml-config",
   "bugs": "https://github.com/remarkjs/remark-yaml-config/issues",
