@@ -1,7 +1,7 @@
 language: node_js
 node_js:
-- lts/boron
-- node
+  - lts/dubnium
+  - node
 after_script: bash <(curl -s https://codecov.io/bash)
 deploy:
   provider: releases
@@ -9,7 +9,7 @@ deploy:
   api_key:
     secure: I7pIPVIkPXzL/1en1PiWshRox5gvPeSF2U1s6EpXewOBLzpU66PpsNv1aUxig5CaQYt3xYMyhINRz40uzyZ/5VbHLbKs6WITkKMDce2kaACcIbd6o/bWrDag8HVvx9v7IpPC+c7ICVKamL8GHbWAFgXEGSTUocuY9lNEaa4uzIQ=
   file:
-    - "remark-yaml-config.js"
-    - "remark-yaml-config.min.js"
+    - 'remark-yaml-config.js'
+    - 'remark-yaml-config.min.js'
   on:
     tags: true
