@@ -4,7 +4,7 @@ var jsYAML = require('js-yaml')
 
 module.exports = yamlConfig
 
-/* Modify remark to read configuration from comments. */
+// Modify remark to read configuration from comments.
 function yamlConfig() {
   var Parser = this.Parser
   var Compiler = this.Compiler
@@ -20,13 +20,13 @@ function yamlConfig() {
   }
 }
 
-/* Wrapper factory. */
+// Wrapper factory.
 function factory(original) {
   replacement.locator = original.locator
 
   return replacement
 
-  /* Replacer for tokeniser or visitor. */
+  // Replacer for tokeniser or visitor.
   function replacement(node) {
     var self = this
     var result = original.apply(self, arguments)
