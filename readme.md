@@ -3,22 +3,23 @@
 [![Build][build-badge]][build]
 [![Coverage][coverage-badge]][coverage]
 [![Downloads][downloads-badge]][downloads]
-[![Chat][chat-badge]][chat]
+[![Size][size-badge]][size]
 [![Sponsors][sponsors-badge]][collective]
 [![Backers][backers-badge]][collective]
+[![Chat][chat-badge]][chat]
 
-Configure [**remark**][remark] with YAML front-matter.  This requires
-[`remark-frontmatter`][remark-frontmatter] as well.
+[**remark**][remark] plugin to configure it with YAML frontmatter.
+This requires [`remark-frontmatter`][remark-frontmatter] as well.
 
-## Installation
+## Install
 
 [npm][]:
 
-```bash
+```sh
 npm install remark-yaml-config
 ```
 
-## Usage
+## Use
 
 Say we have the following file, `example.md`:
 
@@ -36,7 +37,7 @@ remark:
 
 And our script, `example.js`, looks as follows:
 
-```javascript
+```js
 var vfile = require('to-vfile')
 var remark = require('remark')
 var frontmatter = require('remark-frontmatter')
@@ -67,10 +68,11 @@ remark:
 
 ## API
 
-### `remark.use(yamlConfig)`
+### `remark().use(yamlConfig)`
 
-Passes the configuration at the `remark` field as [parse][parse-settings]
-and [stringify][stringify-settings] settings to **remark**.
+Plugin to configure it with YAML frontmatter.
+Takes the `'remark'` field in the frontmatter and passes it as configuration to
+[parse][parse-settings] and [stringify][stringify-settings].
 
 Just like [`remark-comment-config`][remark-comment-config], but YAML is
 more visible.
@@ -84,11 +86,13 @@ more visible.
 
 ## Contribute
 
-See [`contributing.md` in `remarkjs/remark`][contributing] for ways to get
-started.
+See [`contributing.md`][contributing] in [`remarkjs/.github`][health] for ways
+to get started.
+See [`support.md`][support] for ways to get help.
 
-This organisation has a [Code of Conduct][coc].  By interacting with this
-repository, organisation, or community you agree to abide by its terms.
+This project has a [Code of Conduct][coc].
+By interacting with this repository, organisation, or community you agree to
+abide by its terms.
 
 ## License
 
@@ -96,7 +100,7 @@ repository, organisation, or community you agree to abide by its terms.
 
 <!-- Definitions -->
 
-[build-badge]: https://img.shields.io/travis/remarkjs/remark-yaml-config.svg
+[build-badge]: https://img.shields.io/travis/remarkjs/remark-yaml-config/master.svg
 
 [build]: https://travis-ci.org/remarkjs/remark-yaml-config
 
@@ -108,9 +112,9 @@ repository, organisation, or community you agree to abide by its terms.
 
 [downloads]: https://www.npmjs.com/package/remark-yaml-config
 
-[chat-badge]: https://img.shields.io/badge/join%20the%20community-on%20spectrum-7b16ff.svg
+[size-badge]: https://img.shields.io/bundlephobia/minzip/remark-yaml-config.svg
 
-[chat]: https://spectrum.chat/unified/remark
+[size]: https://bundlephobia.com/result?p=remark-yaml-config
 
 [sponsors-badge]: https://opencollective.com/unified/sponsors/badge.svg
 
@@ -118,11 +122,23 @@ repository, organisation, or community you agree to abide by its terms.
 
 [collective]: https://opencollective.com/unified
 
+[chat-badge]: https://img.shields.io/badge/join%20the%20community-on%20spectrum-7b16ff.svg
+
+[chat]: https://spectrum.chat/unified/remark
+
+[npm]: https://docs.npmjs.com/cli/install
+
+[health]: https://github.com/remarkjs/.github
+
+[contributing]: https://github.com/remarkjs/.github/blob/master/contributing.md
+
+[support]: https://github.com/remarkjs/.github/blob/master/support.md
+
+[coc]: https://github.com/remarkjs/.github/blob/master/code-of-conduct.md
+
 [license]: license
 
 [author]: https://wooorm.com
-
-[npm]: https://docs.npmjs.com/cli/install
 
 [remark]: https://github.com/remarkjs/remark
 
@@ -133,7 +149,3 @@ repository, organisation, or community you agree to abide by its terms.
 [remark-comment-config]: https://github.com/remarkjs/remark-comment-config
 
 [remark-frontmatter]: https://github.com/remarkjs/remark-frontmatter
-
-[contributing]: https://github.com/remarkjs/remark/blob/master/contributing.md
-
-[coc]: https://github.com/remarkjs/remark/blob/master/code-of-conduct.md
