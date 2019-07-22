@@ -77,6 +77,12 @@ Takes the `'remark'` field in the frontmatter and passes it as configuration to
 Just like [`remark-comment-config`][remark-comment-config], but YAML is
 more visible.
 
+## Security
+
+Use of `remark-yaml-config` can change how Markdown is parsed or compiled.
+If the Markdown is user provided, this may open you up to a
+[cross-site scripting (XSS)][xss] attack.
+
 ## Related
 
 *   [`remark-comment-config`][remark-comment-config]
@@ -149,3 +155,5 @@ abide by its terms.
 [remark-comment-config]: https://github.com/remarkjs/remark-comment-config
 
 [remark-frontmatter]: https://github.com/remarkjs/remark-frontmatter
+
+[xss]: https://en.wikipedia.org/wiki/Cross-site_scripting
