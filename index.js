@@ -1,6 +1,6 @@
 'use strict'
 
-var jsYAML = require('js-yaml')
+var yaml = require('js-yaml')
 
 module.exports = yamlConfig
 
@@ -36,7 +36,7 @@ function factory(original) {
     var data
 
     try {
-      data = jsYAML.safeLoad(marker.value)
+      data = yaml.safeLoad(marker.value)
       data = data && data.remark
 
       if (data) {
