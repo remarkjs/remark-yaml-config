@@ -7,7 +7,7 @@ var frontmatter = require('remark-frontmatter')
 var html = require('remark-html')
 var yamlConfig = require('.')
 
-test('remark-yaml-config', function(t) {
+test('remark-yaml-config', function (t) {
   t.equal(
     remark()
       .use(frontmatter)
@@ -47,7 +47,7 @@ test('remark-yaml-config', function(t) {
   )
 
   t.throws(
-    function() {
+    function () {
       remark()
         .use(frontmatter)
         .use(yamlConfig)
@@ -62,10 +62,8 @@ test('remark-yaml-config', function(t) {
     'should throw exceptions with location information'
   )
 
-  t.doesNotThrow(function() {
-    unified()
-      .use(yamlConfig)
-      .freeze()
+  t.doesNotThrow(function () {
+    unified().use(yamlConfig).freeze()
   }, 'should not throw without parser / compiler')
 
   t.equal(
