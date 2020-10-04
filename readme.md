@@ -11,13 +11,13 @@
 [**remark**][remark] plugin to configure it with YAML frontmatter.
 This requires [`remark-frontmatter`][remark-frontmatter] as well.
 
-## Note!
+## Important!
 
-This plugin is ready for the new parser in remark
+This plugin is affected by the new parser in remark
 ([`micromark`](https://github.com/micromark/micromark),
 see [`remarkjs/remark#536`](https://github.com/remarkjs/remark/pull/536)).
-No change is needed: it works exactly the same now as it did before!
-(note that the settings accepted by remark changed though)
+Use version 4 while you’re still on remark 12.
+Use version 5 for remark 13+.
 
 ## Install
 
