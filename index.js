@@ -1,51 +1,37 @@
 'use strict'
 
 var yaml = require('js-yaml')
+var warningIssued
 
 module.exports = yamlConfig
 
-var origin = 'remark-yaml-config:invalid-options'
-
 // Modify remark to read configuration from comments.
 function yamlConfig() {
-  var Parser = this.Parser
-  var Compiler = this.Compiler
-  var parser = Parser && Parser.prototype.blockTokenizers
-  var compiler = Compiler && Compiler.prototype.visitors
+  var data = this.data()
 
-  if (parser && parser.yamlFrontMatter) {
-    parser.yamlFrontMatter = factory(parser.yamlFrontMatter)
+  /* istanbul ignore next - old remark. */
+  if (
+    !warningIssued &&
+    this.Compiler &&
+    this.Compiler.prototype &&
+    this.Compiler.prototype.visitors
+  ) {
+    warningIssued = true
+    console.warn(
+      '[remark-heading-gap] Warning: please upgrade to remark 13 to use this plugin'
+    )
   }
 
-  if (compiler && compiler.yaml) {
-    compiler.yaml = factory(compiler.yaml)
-  }
-}
+  /* istanbul ignore next - other extensions */
+  if (!data.toMarkdownExtensions) data.toMarkdownExtensions = []
 
-// Wrapper factory.
-function factory(original) {
-  replacement.locator = original.locator
+  data.toMarkdownExtensions.push({handlers: {yaml: yamlConfig}})
 
-  return replacement
-
-  // Replacer for tokeniser or visitor.
-  function replacement(node) {
-    var self = this
-    var result = original.apply(self, arguments)
-    var marker = result && result.type ? result : node
-    var data
-
-    try {
-      data = yaml.safeLoad(marker.value)
-      data = data && data.remark
-
-      if (data) {
-        self.setOptions(data)
-      }
-    } catch (error) {
-      self.file.fail(error.message, marker, origin)
-    }
-
-    return result
+  function yamlConfig(node) {
+    var data = yaml.safeLoad(node.value)
+    Object.assign(this.options, (data && data.remark) || {})
+    // Like the source:
+    // <https://github.com/syntax-tree/mdast-util-frontmatter/blob/583ae25/lib/to-markdown.js#L28>
+    return '---' + (node.value ? '\n' + node.value : '') + '\n---'
   }
 }

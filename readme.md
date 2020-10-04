@@ -11,6 +11,14 @@
 [**remark**][remark] plugin to configure it with YAML frontmatter.
 This requires [`remark-frontmatter`][remark-frontmatter] as well.
 
+## Note!
+
+This plugin is ready for the new parser in remark
+([`micromark`](https://github.com/micromark/micromark),
+see [`remarkjs/remark#536`](https://github.com/remarkjs/remark/pull/536)).
+No change is needed: it works exactly the same now as it did before!
+(note that the settings accepted by remark changed though)
+
 ## Install
 
 [npm][]:
@@ -26,13 +34,10 @@ Say we have the following file, `example.md`:
 ```markdown
 ---
 remark:
-  commonmark: true
   bullet: "*"
 ---
 
-1)  Commonmark list (this is a parse setting)
-
-*   Hello (this is a stringify setting)
+-   Hello
 ```
 
 And our script, `example.js`, looks as follows:
@@ -57,13 +62,10 @@ Now, running `node example` yields:
 ```markdown
 ---
 remark:
-  commonmark: true
   bullet: "*"
 ---
 
-1.  Commonmark list (this is a parse setting)
-
-*   Hello (this is a stringify setting)
+*   Hello
 ```
 
 ## API
@@ -72,7 +74,7 @@ remark:
 
 Plugin to configure the processor with YAML frontmatter.
 Takes the `'remark'` field in the frontmatter and passes it as configuration to
-[parse][parse-settings] and [stringify][stringify-settings].
+[`remark-stringify`][stringify-settings].
 
 Just like [`remark-comment-config`][remark-comment-config], but YAML is
 more visible.
@@ -148,9 +150,7 @@ abide by its terms.
 
 [remark]: https://github.com/remarkjs/remark
 
-[parse-settings]: https://github.com/remarkjs/remark/blob/HEAD/packages/remark-parse/readme.md#options
-
-[stringify-settings]: https://github.com/remarkjs/remark/blob/HEAD/packages/remark-stringify/readme.md#options
+[stringify-settings]: https://github.com/remarkjs/remark/blob/main/packages/remark-stringify/readme.md#options
 
 [remark-comment-config]: https://github.com/remarkjs/remark-comment-config
 

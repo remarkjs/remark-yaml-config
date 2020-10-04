@@ -22,6 +22,16 @@ test('remark-yaml-config', function (t) {
     remark()
       .use(frontmatter)
       .use(yamlConfig)
+      .processSync('---\n---')
+      .toString(),
+    '---\n---\n',
+    'should not fail on empty yaml'
+  )
+
+  t.equal(
+    remark()
+      .use(frontmatter)
+      .use(yamlConfig)
       .processSync(
         ['---', 'remark:', '  commonmark: true', '---', '', '1)  Foo', ''].join(
           '\n'
@@ -58,8 +68,8 @@ test('remark-yaml-config', function (t) {
         )
         .toString()
     },
-    /1:1-4:4: Invalid value `\?` for setting `options\.bullet`/,
-    'should throw exceptions with location information'
+    /Cannot serialize items with `\?` for `options.bullet`/,
+    'should throw exceptions'
   )
 
   t.doesNotThrow(function () {
