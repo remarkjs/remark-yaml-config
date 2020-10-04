@@ -32,27 +32,9 @@ test('remark-yaml-config', function (t) {
     remark()
       .use(frontmatter)
       .use(yamlConfig)
-      .processSync(
-        ['---', 'remark:', '  commonmark: true', '---', '', '1)  Foo', ''].join(
-          '\n'
-        )
-      )
+      .processSync('---\nremark:\n  bullet: "*"\n---\n-   Foo')
       .toString(),
-    ['---', 'remark:', '  commonmark: true', '---', '', '1.  Foo', ''].join(
-      '\n'
-    ),
-    'should set parse options'
-  )
-
-  t.equal(
-    remark()
-      .use(frontmatter)
-      .use(yamlConfig)
-      .processSync(
-        ['---', 'remark:', '  bullet: "*"', '---', '', '-   Foo', ''].join('\n')
-      )
-      .toString(),
-    ['---', 'remark:', '  bullet: "*"', '---', '', '*   Foo', ''].join('\n'),
+    '---\nremark:\n  bullet: "*"\n---\n\n*   Foo\n',
     'should set stringification options'
   )
 
@@ -61,11 +43,7 @@ test('remark-yaml-config', function (t) {
       remark()
         .use(frontmatter)
         .use(yamlConfig)
-        .processSync(
-          ['---', 'remark:', '  bullet: "?"', '---', '', '-   Foo', ''].join(
-            '\n'
-          )
-        )
+        .processSync('---\nremark:\n  bullet: "?"\n---\n-   Foo')
         .toString()
     },
     /Cannot serialize items with `\?` for `options.bullet`/,
@@ -74,7 +52,7 @@ test('remark-yaml-config', function (t) {
 
   t.doesNotThrow(function () {
     unified().use(yamlConfig).freeze()
-  }, 'should not throw without parser / compiler')
+  }, 'should not throw without compiler')
 
   t.equal(
     remark()
@@ -89,13 +67,13 @@ test('remark-yaml-config', function (t) {
           '  bullet: "*"',
           '---',
           '',
-          '1)  Foo',
+          '1. Foo',
           ''
         ].join('\n')
       )
       .toString(),
-    ['<ol>', '<li>Foo</li>', '</ol>', ''].join('\n'),
-    'should ignore missing compilers'
+    '<ol>\n<li>Foo</li>\n</ol>\n',
+    'should work with a different compiler'
   )
 
   t.end()
