@@ -1,11 +1,9 @@
-'use strict'
-
-var test = require('tape')
-var unified = require('unified')
-var remark = require('remark')
-var frontmatter = require('remark-frontmatter')
-var html = require('remark-html')
-var yamlConfig = require('.')
+import test from 'tape'
+import unified from 'unified'
+import remark from 'remark'
+import frontmatter from 'remark-frontmatter'
+import html from 'remark-html'
+import yamlConfig from './index.js'
 
 test('remark-yaml-config', function (t) {
   t.equal(

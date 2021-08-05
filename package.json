@@ -26,11 +26,14 @@
   "contributors": [
     "Titus Wormer <tituswormer@gmail.com> (https://wooorm.com)"
   ],
+  "sideEffects": false,
+  "type": "module",
+  "main": "index.js",
   "files": [
     "index.js"
   ],
   "dependencies": {
-    "js-yaml": "^3.5.2"
+    "js-yaml": "^3.0.0"
   },
   "devDependencies": {
     "c8": "^7.0.0",
@@ -62,6 +65,8 @@
     "prettier": true,
     "esnext": false,
     "rules": {
+      "no-var": "off",
+      "prefer-arrow-callback": "off",
       "guard-for-in": "off",
       "no-eq-null": "off",
       "eqeqeq": "off"

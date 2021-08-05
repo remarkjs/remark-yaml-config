@@ -1,12 +1,9 @@
-'use strict'
+import yaml from 'js-yaml'
 
-var yaml = require('js-yaml')
 var warningIssued
 
-module.exports = yamlConfig
-
 // Modify remark to read configuration from comments.
-function yamlConfig() {
+export default function remarkYamlConfig() {
   var data = this.data()
 
   // Old remark.
