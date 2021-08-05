@@ -1,15 +1,15 @@
 import test from 'tape'
-import unified from 'unified'
-import remark from 'remark'
-import frontmatter from 'remark-frontmatter'
-import html from 'remark-html'
-import yamlConfig from './index.js'
+import {unified} from 'unified'
+import {remark} from 'remark'
+import remarkFrontmatter from 'remark-frontmatter'
+import remarkHtml from 'remark-html'
+import remarkYamlConfig from './index.js'
 
 test('remark-yaml-config', function (t) {
   t.equal(
     remark()
-      .use(frontmatter)
-      .use(yamlConfig)
+      .use(remarkFrontmatter)
+      .use(remarkYamlConfig)
       .processSync('# Foo bar\n')
       .toString(),
     '# Foo bar\n',
@@ -18,8 +18,8 @@ test('remark-yaml-config', function (t) {
 
   t.equal(
     remark()
-      .use(frontmatter)
-      .use(yamlConfig)
+      .use(remarkFrontmatter)
+      .use(remarkYamlConfig)
       .processSync('---\n---')
       .toString(),
     '---\n---\n',
@@ -28,8 +28,8 @@ test('remark-yaml-config', function (t) {
 
   t.equal(
     remark()
-      .use(frontmatter)
-      .use(yamlConfig)
+      .use(remarkFrontmatter)
+      .use(remarkYamlConfig)
       .processSync('---\nremark:\n  bullet: "*"\n---\n-   Foo')
       .toString(),
     '---\nremark:\n  bullet: "*"\n---\n\n*   Foo\n',
@@ -39,8 +39,8 @@ test('remark-yaml-config', function (t) {
   t.throws(
     function () {
       remark()
-        .use(frontmatter)
-        .use(yamlConfig)
+        .use(remarkFrontmatter)
+        .use(remarkYamlConfig)
         .processSync('---\nremark:\n  bullet: "?"\n---\n-   Foo')
         .toString()
     },
@@ -49,14 +49,14 @@ test('remark-yaml-config', function (t) {
   )
 
   t.doesNotThrow(function () {
-    unified().use(yamlConfig).freeze()
+    unified().use(remarkYamlConfig).freeze()
   }, 'should not throw without compiler')
 
   t.equal(
     remark()
-      .use(frontmatter)
-      .use(yamlConfig)
-      .use(html)
+      .use(remarkFrontmatter)
+      .use(remarkYamlConfig)
+      .use(remarkHtml)
       .processSync(
         [
           '---',
