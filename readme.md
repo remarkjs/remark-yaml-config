@@ -21,6 +21,9 @@ Use version 5 for remark 13+.
 
 ## Install
 
+This package is [ESM only](https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c):
+Node 12+ is needed to use it and it must be `import`ed instead of `require`d.
+
 [npm][]:
 
 ```sh
@@ -40,19 +43,21 @@ remark:
 -   Hello
 ```
 
-And our script, `example.js`, looks as follows:
+And our module, `example.js`, looks as follows:
 
 ```js
-var vfile = require('to-vfile')
-var remark = require('remark')
-var frontmatter = require('remark-frontmatter')
-var yamlConfig = require('remark-yaml-config')
+import {readSync} from 'to-vfile'
+import {remark} from 'remark'
+import remarkFrontmatter from 'remark-frontmatter'
+import remarkYamlConfig from 'remark-yaml-config'
+
+const file = readSync('example.md')
 
 remark()
-  .use(frontmatter)
-  .use(yamlConfig)
-  .process(vfile.readSync('example.md'), function(err, file) {
-    if (err) throw err
+  .use(remarkFrontmatter)
+  .use(remarkYamlConfig)
+  .process(file)
+  .then((file) => {
     console.log(String(file))
   })
 ```
@@ -70,7 +75,10 @@ remark:
 
 ## API
 
-### `remark().use(yamlConfig)`
+This package exports no identifiers.
+The default export is `remarkYamlconfig`.
+
+### `unified().use(remarkYamlconfig)`
 
 Plugin to configure the processor with YAML frontmatter.
 Takes the `'remark'` field in the frontmatter and passes it as configuration to
