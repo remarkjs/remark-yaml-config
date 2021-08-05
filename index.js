@@ -9,7 +9,8 @@ module.exports = yamlConfig
 function yamlConfig() {
   var data = this.data()
 
-  /* istanbul ignore next - old remark. */
+  // Old remark.
+  /* c8 ignore next 11 */
   if (
     !warningIssued &&
     this.Compiler &&
@@ -22,7 +23,8 @@ function yamlConfig() {
     )
   }
 
-  /* istanbul ignore next - other extensions */
+  // Other extensions
+  /* c8 ignore next */
   if (!data.toMarkdownExtensions) data.toMarkdownExtensions = []
 
   data.toMarkdownExtensions.push({handlers: {yaml: yamlConfig}})
