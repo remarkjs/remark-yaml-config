@@ -1,4 +1,4 @@
-import yaml from 'js-yaml'
+import jsYaml from 'js-yaml'
 
 var warningIssued
 
@@ -27,7 +27,7 @@ export default function remarkYamlConfig() {
   data.toMarkdownExtensions.push({handlers: {yaml: yamlConfig}})
 
   function yamlConfig(node) {
-    var data = yaml.safeLoad(node.value)
+    var data = jsYaml.load(node.value)
     Object.assign(this.options, (data && data.remark) || {})
     // Like the source:
     // <https://github.com/syntax-tree/mdast-util-frontmatter/blob/583ae25/lib/to-markdown.js#L28>
