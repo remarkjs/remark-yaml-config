@@ -5,7 +5,7 @@ import remarkFrontmatter from 'remark-frontmatter'
 import remarkHtml from 'remark-html'
 import remarkYamlConfig from './index.js'
 
-test('remark-yaml-config', function (t) {
+test('remark-yaml-config', (t) => {
   t.equal(
     remark()
       .use(remarkFrontmatter)
@@ -37,7 +37,7 @@ test('remark-yaml-config', function (t) {
   )
 
   t.throws(
-    function () {
+    () => {
       remark()
         .use(remarkFrontmatter)
         .use(remarkYamlConfig)
@@ -48,7 +48,7 @@ test('remark-yaml-config', function (t) {
     'should throw exceptions'
   )
 
-  t.doesNotThrow(function () {
+  t.doesNotThrow(() => {
     unified().use(remarkYamlConfig).freeze()
   }, 'should not throw without compiler')
 

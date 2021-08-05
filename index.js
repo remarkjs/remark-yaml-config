@@ -1,10 +1,10 @@
 import jsYaml from 'js-yaml'
 
-var warningIssued
+let warningIssued
 
 // Modify remark to read configuration from comments.
 export default function remarkYamlConfig() {
-  var data = this.data()
+  const data = this.data()
 
   // Old remark.
   /* c8 ignore next 11 */
@@ -27,7 +27,7 @@ export default function remarkYamlConfig() {
   data.toMarkdownExtensions.push({handlers: {yaml: yamlConfig}})
 
   function yamlConfig(node) {
-    var data = jsYaml.load(node.value)
+    const data = jsYaml.load(node.value)
     Object.assign(this.options, (data && data.remark) || {})
     // Like the source:
     // <https://github.com/syntax-tree/mdast-util-frontmatter/blob/583ae25/lib/to-markdown.js#L28>
