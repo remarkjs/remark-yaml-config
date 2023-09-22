@@ -140,7 +140,7 @@ versions of Node.js.
 
 When we cut a new major release, we drop support for unmaintained versions of
 Node.
-This means we try to keep the current release line, `remark-yaml-config@^6`,
+This means we try to keep the current release line, `remark-yaml-config@^7`,
 compatible with Node.js 16.
 
 This plugin works with `remark` version 13+.
