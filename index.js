@@ -19,12 +19,13 @@ export default function remarkYamlConfig() {
       /** @param {YAML} node */
       yaml(node) {
         const data = jsYaml.load(node.value)
-        /** @type {object|undefined} */
-        const config =
+
+        const config = /** @type {object|undefined} */ (
           data && typeof data === 'object' && 'remark' in data
-            ? // @ts-expect-error: hush we just checked.
-              data.remark
+            ? data.remark
             : undefined
+        )
+        // @ts-expect-error: to do.
         Object.assign(this.options, config || {})
         // Like the source:
         // <https://github.com/syntax-tree/mdast-util-frontmatter/blob/583ae25/lib/to-markdown.js#L28>
@@ -36,9 +37,7 @@ export default function remarkYamlConfig() {
   const extensions = /** @type {Extension[]} */ (
     // Other extensions
     /* c8 ignore next 2 */
-    data.toMarkdownExtensions
-      ? data.toMarkdownExtensions
-      : (data.toMarkdownExtensions = [])
+    data.toMarkdownExtensions || (data.toMarkdownExtensions = [])
   )
 
   extensions.push(yamlConfig)
