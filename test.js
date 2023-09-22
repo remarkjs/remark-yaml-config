@@ -3,7 +3,8 @@ import test from 'node:test'
 import {unified} from 'unified'
 import {remark} from 'remark'
 import remarkFrontmatter from 'remark-frontmatter'
-import remarkHtml from 'remark-html'
+import remarkRehype from 'remark-rehype'
+import remarkStringify from 'remark-stringify'
 import remarkYamlConfig from './index.js'
 
 test('remark-yaml-config', async function (t) {
@@ -39,7 +40,7 @@ test('remark-yaml-config', async function (t) {
           .use(remarkYamlConfig)
           .process('---\nremark:\n  bullet: "*"\n---\n-   Foo')
       ),
-      '---\nremark:\n  bullet: "*"\n---\n\n*   Foo\n'
+      '---\nremark:\n  bullet: "*"\n---\n\n* Foo\n'
     )
   })
 
@@ -70,7 +71,8 @@ test('remark-yaml-config', async function (t) {
         await remark()
           .use(remarkFrontmatter)
           .use(remarkYamlConfig)
-          .use(remarkHtml)
+          .use(remarkRehype)
+          .use(remarkStringify)
           .process(
             [
               '---',
