@@ -54,14 +54,14 @@ npm install remark-yaml-config
 In Deno with [`esm.sh`][esmsh]:
 
 ```js
-import remarkYamlConfig from 'https://esm.sh/remark-yaml-config@6'
+import remarkYamlConfig from 'https://esm.sh/remark-yaml-config@7'
 ```
 
 In browsers with [`esm.sh`][esmsh]:
 
 ```html
 <script type="module">
-  import remarkYamlConfig from 'https://esm.sh/remark-yaml-config@6?bundle'
+  import remarkYamlConfig from 'https://esm.sh/remark-yaml-config@7?bundle'
 </script>
 ```
 
