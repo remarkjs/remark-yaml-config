@@ -1,13 +1,25 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {unified} from 'unified'
+import rehypeStringify from 'rehype-stringify'
 import {remark} from 'remark'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkRehype from 'remark-rehype'
-import remarkStringify from 'remark-stringify'
+import {unified} from 'unified'
 import remarkYamlConfig from './index.js'
 
 test('remark-yaml-config', async function (t) {
+  await t.test('should expose the public api', async function () {
+    assert.deepEqual(Object.keys(await import('./index.js')).sort(), [
+      'default'
+    ])
+  })
+
+  await t.test('should not throw without compiler', async function () {
+    assert.doesNotThrow(function () {
+      unified().use(remarkYamlConfig).freeze()
+    })
+  })
+
   await t.test('should not fail without yaml', async function () {
     assert.equal(
       String(
@@ -59,12 +71,6 @@ test('remark-yaml-config', async function (t) {
     }
   })
 
-  await t.test('should not throw without compiler', async function () {
-    assert.doesNotThrow(() => {
-      unified().use(remarkYamlConfig).freeze()
-    })
-  })
-
   await t.test('should work with a different compiler', async function () {
     assert.equal(
       String(
@@ -72,7 +78,7 @@ test('remark-yaml-config', async function (t) {
           .use(remarkFrontmatter)
           .use(remarkYamlConfig)
           .use(remarkRehype)
-          .use(remarkStringify)
+          .use(rehypeStringify)
           .process(
             [
               '---',
@@ -86,7 +92,7 @@ test('remark-yaml-config', async function (t) {
             ].join('\n')
           )
       ),
-      '<ol>\n<li>Foo</li>\n</ol>\n'
+      '<ol>\n<li>Foo</li>\n</ol>'
     )
   })
 })
