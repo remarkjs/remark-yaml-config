@@ -1,78 +1,90 @@
-import test from 'tape'
+import assert from 'node:assert/strict'
+import test from 'node:test'
 import {unified} from 'unified'
 import {remark} from 'remark'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkHtml from 'remark-html'
 import remarkYamlConfig from './index.js'
 
-test('remark-yaml-config', (t) => {
-  t.equal(
-    remark()
-      .use(remarkFrontmatter)
-      .use(remarkYamlConfig)
-      .processSync('# Foo bar\n')
-      .toString(),
-    '# Foo bar\n',
-    'should not fail without yaml'
-  )
+test('remark-yaml-config', async function (t) {
+  await t.test('should not fail without yaml', async function () {
+    assert.equal(
+      String(
+        await remark()
+          .use(remarkFrontmatter)
+          .use(remarkYamlConfig)
+          .process('# Foo bar\n')
+      ),
+      '# Foo bar\n'
+    )
+  })
 
-  t.equal(
-    remark()
-      .use(remarkFrontmatter)
-      .use(remarkYamlConfig)
-      .processSync('---\n---')
-      .toString(),
-    '---\n---\n',
-    'should not fail on empty yaml'
-  )
+  await t.test('should not fail on empty yaml', async function () {
+    assert.equal(
+      String(
+        await remark()
+          .use(remarkFrontmatter)
+          .use(remarkYamlConfig)
+          .process('---\n---')
+      ),
+      '---\n---\n'
+    )
+  })
 
-  t.equal(
-    remark()
-      .use(remarkFrontmatter)
-      .use(remarkYamlConfig)
-      .processSync('---\nremark:\n  bullet: "*"\n---\n-   Foo')
-      .toString(),
-    '---\nremark:\n  bullet: "*"\n---\n\n*   Foo\n',
-    'should set stringification options'
-  )
+  await t.test('should set stringification options', async function () {
+    assert.equal(
+      String(
+        await remark()
+          .use(remarkFrontmatter)
+          .use(remarkYamlConfig)
+          .process('---\nremark:\n  bullet: "*"\n---\n-   Foo')
+      ),
+      '---\nremark:\n  bullet: "*"\n---\n\n*   Foo\n'
+    )
+  })
 
-  t.throws(
-    () => {
-      remark()
+  await t.test('should throw exceptions', async function () {
+    try {
+      await remark()
         .use(remarkFrontmatter)
         .use(remarkYamlConfig)
-        .processSync('---\nremark:\n  bullet: "?"\n---\n-   Foo')
-        .toString()
-    },
-    /Cannot serialize items with `\?` for `options.bullet`/,
-    'should throw exceptions'
-  )
-
-  t.doesNotThrow(() => {
-    unified().use(remarkYamlConfig).freeze()
-  }, 'should not throw without compiler')
-
-  t.equal(
-    remark()
-      .use(remarkFrontmatter)
-      .use(remarkYamlConfig)
-      .use(remarkHtml)
-      .processSync(
-        [
-          '---',
-          'remark:',
-          '  commonmark: true',
-          '  bullet: "*"',
-          '---',
-          '',
-          '1. Foo',
-          ''
-        ].join('\n')
+        .process('---\nremark:\n  bullet: "?"\n---\n-   Foo')
+      assert.fail()
+    } catch (error) {
+      assert.match(
+        String(error),
+        /Cannot serialize items with `\?` for `options.bullet`/
       )
-      .toString(),
-    '<ol>\n<li>Foo</li>\n</ol>\n',
-    'should work with a different compiler'
-  )
+    }
+  })
 
-  t.end()
+  await t.test('should not throw without compiler', async function () {
+    assert.doesNotThrow(() => {
+      unified().use(remarkYamlConfig).freeze()
+    })
+  })
+
+  await t.test('should work with a different compiler', async function () {
+    assert.equal(
+      String(
+        await remark()
+          .use(remarkFrontmatter)
+          .use(remarkYamlConfig)
+          .use(remarkHtml)
+          .process(
+            [
+              '---',
+              'remark:',
+              '  commonmark: true',
+              '  bullet: "*"',
+              '---',
+              '',
+              '1. Foo',
+              ''
+            ].join('\n')
+          )
+      ),
+      '<ol>\n<li>Foo</li>\n</ol>\n'
+    )
+  })
 })
